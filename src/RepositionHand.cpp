@@ -3,6 +3,8 @@
 #include <baxter_core_msgs/EndpointState.h>
 #include <baxter_core_msgs/JointCommand.h>
 #include "operation_plushie/RepositionHand.h"
+#include <baxter_core_msgs/EndEffectorCommand.h>
+#include "sensor_msgs/JointState.h"
 #include <cmath>
 #include <cstdlib>
 #include <pthread.h>
@@ -14,8 +16,10 @@ private:
     ros::ServiceServer reposition_hand_service;
     ros::ServiceClient ik_solver;
     ros::Publisher joint_pub;
-    ros::Subscriber endstate_sub;
+    ros::Subscriber endstate_sub, torque_sub;
     baxter_core_msgs::EndpointState eps;
+    double s1_torque;
+    bool isLeft;
 
 public:
     RepositionHand();
@@ -23,7 +27,7 @@ public:
     bool callback(operation_plushie::RepositionHand::Request&, operation_plushie::RepositionHand::Response&);
     void updateEndpoint(baxter_core_msgs::EndpointState);
     bool isPositioned(double, double, double, double, double, double, double);
-
+    void updateEffort(sensor_msgs::JointState js);
 };
 
 void RepositionHand::begin_detection()
@@ -38,15 +42,18 @@ RepositionHand::RepositionHand()
 
 bool RepositionHand::callback(operation_plushie::RepositionHand::Request &req, operation_plushie::RepositionHand::Response &res)
 {
+    isLeft = req.isLeft;
+
     ik_solver = n.serviceClient<baxter_core_msgs::SolvePositionIK>(
-        std::string("/ExternalTools/") + (req.isLeft?"left":"right") + "/PositionKinematicsNode/IKService");
+        std::string("/ExternalTools/") + (isLeft?"left":"right") + "/PositionKinematicsNode/IKService");
     
     joint_pub = n.advertise<baxter_core_msgs::JointCommand>(
-        std::string("/robot/limb/") + (req.isLeft?"left":"right") + "/joint_command", 200);
+        std::string("/robot/limb/") + (isLeft?"left":"right") + "/joint_command", 200);
 
     endstate_sub = n.subscribe<baxter_core_msgs::EndpointState>(
-        std::string("/robot/limb/") + (req.isLeft ? "left" : "right") + "/endpoint_state", 1000, &RepositionHand::updateEndpoint, this);
+        std::string("/robot/limb/") + (isLeft ? "left" : "right") + "/endpoint_state", 1000, &RepositionHand::updateEndpoint, this);
 
+    torque_sub = n.subscribe<sensor_msgs::JointState>("/robot/joint_states", 1000, &RepositionHand::updateEffort, this);
     baxter_core_msgs::SolvePositionIK srv;
 
     const double ROLL = 0, PITCH = 3.14, YAW = 0;
@@ -106,16 +113,24 @@ bool RepositionHand::callback(operation_plushie::RepositionHand::Request &req, o
         msg.command.push_back(srv.response.joints[0].position[i]);
     }
 
+    double s1_torque_original = s1_torque;
+    ROS_INFO("orig: %f", s1_torque_original); 
+    
     ros::Rate loop_rate(10);
     while(ros::ok() && !isPositioned(req.x, req.y, req.z, orix, oriy, oriz, oriw))
     {
         joint_pub.publish(msg);
         ros::spinOnce();
         loop_rate.sleep();
+        
+        if((s1_torque - s1_torque_original) > 2 && req.z < eps.pose.position.z)
+        {
+            ROS_INFO("final torque: %f", s1_torque);
+            res.isStuck = true;
+            break;
+        }
     }
-
-//    usleep(800000);
-
+    
     return true;
 }
 
@@ -127,10 +142,12 @@ void RepositionHand::updateEndpoint(baxter_core_msgs::EndpointState eps__)
 bool RepositionHand::isPositioned(double x, double y, double z, double orix, double oriy, double oriz, double oriw)
 {
     const double P_WIG = .007f, O_WIG = .05f;
-    double temp =  fabs(eps.pose.position.z - z);
-    ROS_INFO("%f", temp);
+    
     return (fabs(eps.pose.position.x - x) < P_WIG && fabs(eps.pose.position.y - y) < P_WIG && fabs(eps.pose.position.z - z) < P_WIG 
         && fabs(eps.pose.orientation.x - orix) < O_WIG && fabs(eps.pose.orientation.y - oriy) < O_WIG && fabs(eps.pose.orientation.z - oriz) < O_WIG && fabs(eps.pose.orientation.w - oriw) < O_WIG);
 }
 
-
+void RepositionHand::updateEffort(sensor_msgs::JointState js)
+{
+    s1_torque = js.effort[(isLeft ? 5 : 12)];
+}

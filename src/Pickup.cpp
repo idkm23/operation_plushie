@@ -9,7 +9,7 @@
 
 //baxter movement
 #include <baxter_core_msgs/JointCommand.h>
-#include <baxter_core_msgs/EndEffectorState.h>
+#include <baxter_core_msgs/EndEffectorCommand.h>
 #include <sensor_msgs/JointState.h>
 
 //Image processing
@@ -18,6 +18,8 @@
 #include <sensor_msgs/image_encodings.h>
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
+
+#include <pthread.h>
 
 //for IR sensor
 #include <sensor_msgs/Range.h>
@@ -28,7 +30,7 @@ private:
     ros::NodeHandle n;
     ros::ServiceServer pickup_service;
     ros::ServiceClient reposition_hand_client;
-    ros::Publisher arm_pub, gripper_pub, xdisplay_pub;
+    ros::Publisher arm_pub, xdisplay_pub, gripper_pub;
     ros::Subscriber raw_image, endstate_sub, ir_sensor_sub;
     bool isCentered, isMoving, isLeft;
     double x, y, z;
@@ -43,7 +45,7 @@ public:
     void moveArm(int, int);
     void updateEndpoint(baxter_core_msgs::EndpointState);
     void updateIrSensor(sensor_msgs::Range);
-    void stepDown();
+    bool stepDown(double, double);
 };
 
 Pickup::Pickup() 
@@ -78,8 +80,8 @@ bool Pickup::grabPlushie(operation_plushie::Pickup::Request &req, operation_plus
     arm_pub = n.advertise<baxter_core_msgs::JointCommand>(
         std::string("/robot/limb/")         + (isLeft?"left":"right") + "/joint_command", 1000);
     
-    gripper_pub = n.advertise<baxter_core_msgs::EndEffectorState>(
-        std::string("/robot/end_effector/") + (isLeft?"left":"right") + "_gripper/state", 1000);
+    gripper_pub = n.advertise<baxter_core_msgs::EndEffectorCommand>(
+        std::string("/robot/end_effector/") + (isLeft?"left":"right") + "_gripper/command", 1000);
     
     raw_image = n.subscribe<sensor_msgs::Image>(
         std::string("cameras/") + (isLeft?"left":"right") + "_hand_camera/image", 1, &Pickup::getHandImage, this);
@@ -87,30 +89,67 @@ bool Pickup::grabPlushie(operation_plushie::Pickup::Request &req, operation_plus
     endstate_sub = n.subscribe<baxter_core_msgs::EndpointState>(
         std::string("/robot/limb/") + (isLeft ? "left" : "right") + "/endpoint_state", 10, &Pickup::updateEndpoint, this);
 
-   ir_sensor_sub = n.subscribe<sensor_msgs::Range>(
+    ir_sensor_sub = n.subscribe<sensor_msgs::Range>(
         std::string("/robot/range/") + (isLeft ? "left" : "right") + "_hand_range/state", 10, &Pickup::updateIrSensor, this);
-
-    //Center above color 
-    ros::Rate loop_rate(10);
-    while(ros::ok() && !isCentered)
-    {
-        ros::spinOnce();
-        loop_rate.sleep();
-    }
     
-    ROS_INFO("Centered above color");
-
-    //go down
-    while(ros::ok() && ir_sensor > 0.116f)
+    ros::Rate loop_rate(10);
+    while(1)
     {
+        //Center above color 
+        while(ros::ok() && !isCentered)
+        {
+            ros::spinOnce();
+            loop_rate.sleep();
+        }
+        
+        ROS_INFO("Centered above color");
+        double cent_x = x, cent_y = y;
+
         ROS_INFO("going down");
-        stepDown();
-        ros::spinOnce();
-        loop_rate.sleep();    
-    } 
+        
+        //go down
+        do {
+            ros::spinOnce();
+            loop_rate.sleep();    
+        } while(ros::ok() /*&& ir_sensor > 0.1175f*/ && stepDown(cent_x, cent_y));
 
+        baxter_core_msgs::EndEffectorCommand hand_command;
+        hand_command.id = 65538;
+        hand_command.command = "calibrate";
+        gripper_pub.publish(hand_command);
 
-    //close gripper, come up, and thats it
+        hand_command.command = "grip";
+        gripper_pub.publish(hand_command);
+        
+        usleep(400000);
+
+        ROS_INFO("Going Up");
+              
+        //go up
+        operation_plushie::RepositionHand srv;
+
+        srv.request.isLeft = isLeft;    
+        srv.request.x = x;
+        srv.request.y = y;
+        srv.request.z = .15;
+        z = .15;
+        usleep(400000);
+
+        if(!reposition_hand_client.call(srv))
+        {
+            ROS_ERROR("Failed to call reposition_hand_service");
+            isMoving = false;
+            return false;
+        }
+        
+        //open
+        hand_command.command = "release";
+        gripper_pub.publish(hand_command);
+
+        //close gripper, come up, and thats it
+        
+        isCentered = false; 
+    }
 
     return true;
 }
@@ -161,7 +200,7 @@ void Pickup::getHandImage(const sensor_msgs::ImageConstPtr& msg)
 
     if (dArea > 10000)
     {
-        const int XTRANS = 40, YTRANS = -70;
+        const int XTRANS = 60, YTRANS = -70;
 
         //calculate the position of the ball
         int posX = dM10 / dArea;
@@ -170,7 +209,7 @@ void Pickup::getHandImage(const sensor_msgs::ImageConstPtr& msg)
         cv::cvtColor(imgThresholded, imgThresholded, cv::COLOR_GRAY2BGR);
         
         //Center of screen and center of proper color
-        cv::ellipse(imgThresholded, cv::Point(imgThresholded.cols/2 + XTRANS, imgThresholded.rows/2 + YTRANS), cv::Size(20, 20), 360, 0, 360, cv::Scalar(255, 0, 0), 3, 8);
+        cv::ellipse(imgThresholded, cv::Point(imgThresholded.cols/2 + XTRANS, imgThresholded.rows/2 + YTRANS), cv::Size(10, 10), 360, 0, 360, cv::Scalar(255, 0, 0), 3, 8);
         cv::ellipse( imgThresholded, cv::Point(posX, posY), cv::Size(10, 10), 360, 0, 360, cv::Scalar(100, 100, 255), 5, 8);
 
         sensor_msgs::ImagePtr xdisplay_img = cv_bridge::CvImage(std_msgs::Header(), "bgr8", imgThresholded).toImageMsg();
@@ -190,7 +229,7 @@ void Pickup::moveArm(int y_shift, int x_shift)
     
     isMoving = true;    
     
-    const int CENT_VAL = 20;   
+    const int CENT_VAL = 10;   
 
     if(abs(x_shift) < CENT_VAL && abs(y_shift) < CENT_VAL)
     {
@@ -230,19 +269,21 @@ void Pickup::moveArm(int y_shift, int x_shift)
     isMoving = false;
 }
 
-void Pickup::stepDown()
+bool Pickup::stepDown(double __x, double __y)
 {
     operation_plushie::RepositionHand srv;
-    srv.request.x = x;
-    srv.request.y = y;
+    srv.request.x = __x;
+    srv.request.y = __y;
     srv.request.z = z - 0.01f;
     srv.request.isLeft = isLeft;
-
+    
     if(!reposition_hand_client.call(srv))
     {
         ROS_ERROR("Failed to call reposition_hand_service in stepDown");
-        return;
+        return false;
     }
+    
+    return !srv.response.isStuck;
 }
 
 void Pickup::updateEndpoint(baxter_core_msgs::EndpointState eps)
