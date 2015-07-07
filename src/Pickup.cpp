@@ -2,6 +2,7 @@
 
 #include "operation_plushie/Pickup.h"
 #include "operation_plushie/RepositionHand.h"
+#include "operation_plushie/RepositionProgress.h"
 
 //inverse kinematics
 #include <baxter_core_msgs/SolvePositionIK.h>
@@ -29,7 +30,7 @@ class Pickup
 private:
     ros::NodeHandle n;
     ros::ServiceServer pickup_service;
-    ros::ServiceClient reposition_hand_client;
+    ros::ServiceClient reposition_hand_client, reposition_progress_client;
     ros::Publisher arm_pub, xdisplay_pub, gripper_pub;
     ros::Subscriber raw_image, endstate_sub, ir_sensor_sub;
     bool isCentered, isMoving, isLeft;
@@ -46,6 +47,7 @@ public:
     void updateEndpoint(baxter_core_msgs::EndpointState);
     void updateIrSensor(sensor_msgs::Range);
     bool stepDown(double, double);
+    bool sleepUntilDone();
 };
 
 Pickup::Pickup() 
@@ -53,6 +55,7 @@ Pickup::Pickup()
     pickup_service = n.advertiseService("pickup_service", &Pickup::grabPlushie, this);
     reposition_hand_client = n.serviceClient<operation_plushie::RepositionHand>("reposition_hand_service");
     xdisplay_pub = n.advertise<sensor_msgs::Image>("/robot/xdisplay", 1000);
+    reposition_progress_client = n.serviceClient<operation_plushie::RepositionProgress>("reposition_progress_service");
     x = 0.6;
     y = 0.5;
     z = 0.15;
@@ -107,11 +110,12 @@ bool Pickup::grabPlushie(operation_plushie::Pickup::Request &req, operation_plus
 
         ROS_INFO("going down");
         
+        
         //go down
         do {
             ros::spinOnce();
-            loop_rate.sleep();    
-        } while(ros::ok() /*&& ir_sensor > 0.1175f*/ && stepDown(cent_x, cent_y));
+            loop_rate.sleep(); 
+        } while(ros::ok() && !stepDown(cent_x, cent_y));// && ir_sensor > 0.1175f);
 
         baxter_core_msgs::EndEffectorCommand hand_command;
         hand_command.id = 65538;
@@ -141,12 +145,12 @@ bool Pickup::grabPlushie(operation_plushie::Pickup::Request &req, operation_plus
             isMoving = false;
             return false;
         }
-        
+       
+        sleepUntilDone();
+ 
         //open
         hand_command.command = "release";
         gripper_pub.publish(hand_command);
-
-        //close gripper, come up, and thats it
         
         isCentered = false; 
     }
@@ -266,6 +270,8 @@ void Pickup::moveArm(int y_shift, int x_shift)
         return;
     } 
 
+    sleepUntilDone();
+
     isMoving = false;
 }
 
@@ -283,7 +289,7 @@ bool Pickup::stepDown(double __x, double __y)
         return false;
     }
     
-    return !srv.response.isStuck;
+    return sleepUntilDone(); 
 }
 
 void Pickup::updateEndpoint(baxter_core_msgs::EndpointState eps)
@@ -296,4 +302,17 @@ void Pickup::updateEndpoint(baxter_core_msgs::EndpointState eps)
 void Pickup::updateIrSensor(sensor_msgs::Range ir_sensor__)
 {
     ir_sensor = ir_sensor__.range;
+}
+
+bool Pickup::sleepUntilDone()
+{
+    ROS_INFO("Entered sleepUntilDone!\n");
+    operation_plushie::RepositionProgress srv;
+    while(!srv.response.isComplete)
+    {
+        reposition_progress_client.call(srv);
+    }
+    ROS_INFO("Slept until done!\n");
+    
+    return srv.response.isStuck;
 }
