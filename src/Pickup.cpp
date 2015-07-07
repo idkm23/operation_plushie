@@ -25,6 +25,8 @@
 //for IR sensor
 #include <sensor_msgs/Range.h>
 
+enum Stage {CENTERING, LOWERING, RETURNING, FINISHED};
+
 class Pickup 
 {
 private:
@@ -36,17 +38,30 @@ private:
     bool isCentered, isMoving, isLeft;
     double x, y, z;
     double ir_sensor;
+    double lowering_x, lowering_y;
+    Stage stage;
 
     static const int iLowH, iHighH, iLowS, iHighS, iLowV, iHighV;
 
 public:
     Pickup();
     void begin_detection();
+    
+    //main service call function
     bool grabPlushie(operation_plushie::Pickup::Request &req, operation_plushie::Pickup::Response &res);
-    void getHandImage(const sensor_msgs::ImageConstPtr&);
-    void moveArm(int, int);
+    
     void updateEndpoint(baxter_core_msgs::EndpointState);
     void updateIrSensor(sensor_msgs::Range);
+
+    void chooseStage(const sensor_msgs::ImageConstPtr&);
+    
+    //Choose stage calls these three main functions
+    void getHandImage(const sensor_msgs::ImageConstPtr&);
+    void lowerArm();
+    void fetchNRaise();
+    
+    //worker functions the stages use
+    void moveArm(int, int);
     bool stepDown(double, double);
     bool sleepUntilDone();
 };
@@ -67,7 +82,7 @@ Pickup::Pickup()
 
 void Pickup::begin_detection()
 {
-    isCentered = false;
+    stage = FINISHED;
     isMoving = false;
     ros::spin();
 }
@@ -78,13 +93,13 @@ bool Pickup::grabPlushie(operation_plushie::Pickup::Request &req, operation_plus
     isLeft = req.isLeft;
     
     arm_pub = n.advertise<baxter_core_msgs::JointCommand>(
-        std::string("/robot/limb/")         + (isLeft?"left":"right") + "/joint_command", 1000);
+        std::string("/robot/limb/") + (isLeft?"left":"right") + "/joint_command", 1000);
     
     gripper_pub = n.advertise<baxter_core_msgs::EndEffectorCommand>(
         std::string("/robot/end_effector/") + (isLeft?"left":"right") + "_gripper/command", 1000);
     
     raw_image = n.subscribe<sensor_msgs::Image>(
-        std::string("cameras/") + (isLeft?"left":"right") + "_hand_camera/image", 1, &Pickup::getHandImage, this);
+        std::string("cameras/") + (isLeft?"left":"right") + "_hand_camera/image", 1, &Pickup::chooseStage, this);
    
     endstate_sub = n.subscribe<baxter_core_msgs::EndpointState>(
         std::string("/robot/limb/") + (isLeft ? "left" : "right") + "/endpoint_state", 10, &Pickup::updateEndpoint, this);
@@ -92,6 +107,19 @@ bool Pickup::grabPlushie(operation_plushie::Pickup::Request &req, operation_plus
     ir_sensor_sub = n.subscribe<sensor_msgs::Range>(
         std::string("/robot/range/") + (isLeft ? "left" : "right") + "_hand_range/state", 10, &Pickup::updateIrSensor, this);
     
+    stage = CENTERING;
+    
+    baxter_core_msgs::EndEffectorCommand hand_command;
+    hand_command.id = 65538;
+    hand_command.command = "calibrate";
+    gripper_pub.publish(hand_command);
+
+    hand_command.command = "release";
+    gripper_pub.publish(hand_command);
+
+    return true;
+}   
+/* 
     ros::Rate loop_rate(10);
     while(1)
     {
@@ -151,16 +179,30 @@ bool Pickup::grabPlushie(operation_plushie::Pickup::Request &req, operation_plus
         usleep(400000);        
      
         isCentered = false; 
+    }*/
+
+void Pickup::chooseStage(const sensor_msgs::ImageConstPtr& msg)
+{
+    switch(stage)
+    {
+    case CENTERING:
+        getHandImage(msg);
+        break;
+    case LOWERING:
+        lowerArm();
+        break;
+    case RETURNING:
+        fetchNRaise(); 
+        break;
+    case FINISHED:
+        return;    
     }
 
-    return true;
+
 }
 
 void Pickup::getHandImage(const sensor_msgs::ImageConstPtr& msg)
 {
-    if(isCentered)
-        return;
-
     cv_bridge::CvImagePtr cv_ptr_cam;
 
     try 
@@ -236,7 +278,9 @@ void Pickup::moveArm(int y_shift, int x_shift)
     if(abs(x_shift) < CENT_VAL && abs(y_shift) < CENT_VAL)
     {
         ROS_INFO("CENTERED");
-        isCentered = true;
+        stage = LOWERING;
+        lowering_x = x;
+        lowering_y = y;
         isMoving = false;
         return;
     }
@@ -313,4 +357,43 @@ bool Pickup::sleepUntilDone()
     ROS_INFO("Slept until done!\n");
     
     return srv.response.isStuck;
+}
+
+void Pickup::lowerArm()
+{
+    if(stepDown(lowering_x, lowering_y))// && ir_sensor > 0.1175f);
+    {
+        stage = RETURNING;
+    }
+}
+
+void Pickup::fetchNRaise()
+{
+    baxter_core_msgs::EndEffectorCommand hand_command;
+    hand_command.id = 65538;
+    hand_command.command = "grip";
+    gripper_pub.publish(hand_command);
+    
+    usleep(400000);
+
+    operation_plushie::RepositionHand srv;
+
+    srv.request.isLeft = isLeft;    
+    srv.request.x = x;
+    srv.request.y = y;
+    srv.request.z = .15;
+    z = .15;
+
+    if(!reposition_hand_client.call(srv))
+    {
+        ROS_ERROR("Failed to call reposition_hand_service");
+        isMoving = false;
+        return;
+    }
+   
+    sleepUntilDone();
+
+    usleep(400000);
+
+    stage = FINISHED;
 }
