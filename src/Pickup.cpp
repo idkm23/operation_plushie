@@ -35,8 +35,9 @@ private:
     ros::Subscriber raw_image, endstate_sub, ir_sensor_sub;
     bool isCentered, isMoving, isLeft;
     double x, y, z;
-    int iLowH, iHighH, iLowS, iHighS, iLowV, iHighV;
     double ir_sensor;
+
+    static const int iLowH, iHighH, iLowS, iHighS, iLowV, iHighV;
 
 public:
     Pickup();
@@ -49,6 +50,9 @@ public:
     bool stepDown(double, double);
     bool sleepUntilDone();
 };
+
+const int Pickup::iLowH = 99, Pickup::iHighH = 122, Pickup::iLowS = 85, 
+          Pickup::iHighS = 150, Pickup::iLowV = 130, Pickup::iHighV = 226;
 
 Pickup::Pickup() 
 {
@@ -72,13 +76,6 @@ bool Pickup::grabPlushie(operation_plushie::Pickup::Request &req, operation_plus
 {
     ROS_INFO("Entered pickup");
     isLeft = req.isLeft;
-
-    iLowH = 99;
-    iHighH = 122;
-    iLowS = 85;
-    iHighS = 150;
-    iLowV = 130;
-    iHighV = 226;
     
     arm_pub = n.advertise<baxter_core_msgs::JointCommand>(
         std::string("/robot/limb/")         + (isLeft?"left":"right") + "/joint_command", 1000);
@@ -151,7 +148,8 @@ bool Pickup::grabPlushie(operation_plushie::Pickup::Request &req, operation_plus
         //open
         hand_command.command = "release";
         gripper_pub.publish(hand_command);
-        
+        usleep(400000);        
+     
         isCentered = false; 
     }
 
