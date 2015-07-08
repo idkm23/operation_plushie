@@ -27,7 +27,7 @@ private:
     baxter_core_msgs::JointCommand msg;
 
     //consistent torque
-    double consistent_torque, c_x, c_y, c_z;
+    double consistent_torque, c_x, c_y, c_z, c_orix, c_oriy, c_oriz, c_oriw;
     int consistent_torque_count, c_pose_count;
 
 public:
@@ -77,7 +77,7 @@ bool RepositionHand::callback(operation_plushie::RepositionHand::Request &req, o
     baxter_core_msgs::SolvePositionIK srv;
 
     //start of math functions to setup pose
-    const double ROLL = 0, PITCH = 3.14, YAW = 0;
+    const double ROLL = 0, PITCH = 3.14, YAW = req.yaw;
 
     double mathc1 = cos(PITCH),
         maths1 = sin(PITCH),
@@ -97,7 +97,7 @@ bool RepositionHand::callback(operation_plushie::RepositionHand::Request &req, o
     ps.header.frame_id = "base"; 
     ps.header.stamp = ros::Time::now();
 
-    ps.pose.position.x = req.x;
+    ps.pose.position.x = (req.x > 0.8 ? 0.8 : req.x);
     ps.pose.position.y = req.y;
     ps.pose.position.z = req.z;
 
@@ -152,8 +152,9 @@ void RepositionHand::updateRightEndpoint(baxter_core_msgs::EndpointState eps)
 
 void RepositionHand::updateEndpoint(baxter_core_msgs::EndpointState eps)
 {
-    const double P_WIG = .001f;
-    if(fabs(eps.pose.position.x - c_x) < P_WIG && fabs(eps.pose.position.y - c_y) < P_WIG && fabs(eps.pose.position.z - c_z) < P_WIG)
+    const double P_WIG = .001f, O_WIG = .05f;
+    if(fabs(eps.pose.position.x - c_x) < P_WIG && fabs(eps.pose.position.y - c_y) < P_WIG && fabs(eps.pose.position.z - c_z) < P_WIG 
+        && fabs(eps.pose.orientation.x - c_orix) < O_WIG && fabs(eps.pose.orientation.y - c_oriy) < O_WIG && fabs(eps.pose.orientation.z - c_oriz) < O_WIG && fabs(eps.pose.orientation.w - c_oriw) < O_WIG)
     {
         c_pose_count++;
     }
@@ -163,6 +164,10 @@ void RepositionHand::updateEndpoint(baxter_core_msgs::EndpointState eps)
         c_x = eps.pose.position.x;
         c_y = eps.pose.position.y;
         c_z = eps.pose.position.z;
+        c_orix = eps.pose.orientation.x;
+        c_oriy = eps.pose.orientation.y;
+        c_oriz = eps.pose.orientation.z;
+        c_oriw = eps.pose.orientation.w;
     }
     
     if(isMoving)

@@ -11,6 +11,7 @@
 //baxter movement
 #include <baxter_core_msgs/JointCommand.h>
 #include <baxter_core_msgs/EndEffectorCommand.h>
+#include <baxter_core_msgs/EndEffectorState.h>
 #include <sensor_msgs/JointState.h>
 
 //Image processing
@@ -25,7 +26,7 @@
 //for IR sensor
 #include <sensor_msgs/Range.h>
 
-enum Stage {CENTERING, LOWERING, RETURNING, FINISHED};
+enum Stage {INITIALIZING, CENTERING, LOWERING, RETURNING, FINISHED};
 
 class Pickup 
 {
@@ -34,24 +35,28 @@ private:
     ros::ServiceServer pickup_service;
     ros::ServiceClient reposition_hand_client, reposition_progress_client;
     ros::Publisher arm_pub, xdisplay_pub, gripper_pub;
-    ros::Subscriber raw_image, endstate_sub, ir_sensor_sub;
-    bool isCentered, isMoving, isLeft;
+    ros::Subscriber raw_image, endstate_sub, ir_sensor_sub, is_holding_sub;
+    bool isCentered, isMoving, isLeft, isHolding, missedLast;
     double x, y, z;
     double ir_sensor;
     double lowering_x, lowering_y;
     Stage stage;
+    int yaw_index;
+    operation_plushie::Pickup::Response * response_member;
 
     static const int iLowH, iHighH, iLowS, iHighS, iLowV, iHighV;
+    static const double yawDictionary[];
 
 public:
     Pickup();
     void begin_detection();
     
     //main service call function
-    bool grabPlushie(operation_plushie::Pickup::Request &req, operation_plushie::Pickup::Response &res);
+    bool grabPlushie(operation_plushie::Pickup::Request&, operation_plushie::Pickup::Response&);
     
     void updateEndpoint(baxter_core_msgs::EndpointState);
     void updateIrSensor(sensor_msgs::Range);
+    void updateEndEffectorState(baxter_core_msgs::EndEffectorState);
 
     void chooseStage(const sensor_msgs::ImageConstPtr&);
     
@@ -61,10 +66,13 @@ public:
     void fetchNRaise();
     
     //worker functions the stages use
+    void setupHand();
     void moveArm(int, int);
     bool stepDown(double, double);
     bool sleepUntilDone();
 };
+
+const double Pickup::yawDictionary[] = {0, 3.14 / 4, 3.14 / 2, 3 * 3.14 / 4};
 
 const int Pickup::iLowH = 99, Pickup::iHighH = 122, Pickup::iLowS = 85, 
           Pickup::iHighS = 150, Pickup::iLowV = 130, Pickup::iHighV = 226;
@@ -75,6 +83,7 @@ Pickup::Pickup()
     reposition_hand_client = n.serviceClient<operation_plushie::RepositionHand>("reposition_hand_service");
     xdisplay_pub = n.advertise<sensor_msgs::Image>("/robot/xdisplay", 1000);
     reposition_progress_client = n.serviceClient<operation_plushie::RepositionProgress>("reposition_progress_service");
+ 
     x = 0.6;
     y = 0.5;
     z = 0.15;
@@ -107,84 +116,23 @@ bool Pickup::grabPlushie(operation_plushie::Pickup::Request &req, operation_plus
     ir_sensor_sub = n.subscribe<sensor_msgs::Range>(
         std::string("/robot/range/") + (isLeft ? "left" : "right") + "_hand_range/state", 10, &Pickup::updateIrSensor, this);
     
-    stage = CENTERING;
-    
-    baxter_core_msgs::EndEffectorCommand hand_command;
-    hand_command.id = 65538;
-    hand_command.command = "calibrate";
-    gripper_pub.publish(hand_command);
+    is_holding_sub = n.subscribe<baxter_core_msgs::EndEffectorState>(
+        std::string("/robot/end_effector/") + (isLeft ? "left" : "right") + "_gripper/state", 10, &Pickup::updateEndEffectorState, this);
 
-    hand_command.command = "release";
-    gripper_pub.publish(hand_command);
-
+    response_member = &res;
+    yaw_index = -1;
+    stage = INITIALIZING;
+        
     return true;
 }   
-/* 
-    ros::Rate loop_rate(10);
-    while(1)
-    {
-        //Center above color 
-        while(ros::ok() && !isCentered)
-        {
-            ros::spinOnce();
-            loop_rate.sleep();
-        }
-        
-        ROS_INFO("Centered above color");
-        double cent_x = x, cent_y = y;
-
-        ROS_INFO("going down");
-        
-        
-        //go down
-        do {
-            ros::spinOnce();
-            loop_rate.sleep(); 
-        } while(ros::ok() && !stepDown(cent_x, cent_y));// && ir_sensor > 0.1175f);
-
-        baxter_core_msgs::EndEffectorCommand hand_command;
-        hand_command.id = 65538;
-        hand_command.command = "calibrate";
-        gripper_pub.publish(hand_command);
-
-        hand_command.command = "grip";
-        gripper_pub.publish(hand_command);
-        
-        usleep(400000);
-
-        ROS_INFO("Going Up");
-              
-        //go up
-        operation_plushie::RepositionHand srv;
-
-        srv.request.isLeft = isLeft;    
-        srv.request.x = x;
-        srv.request.y = y;
-        srv.request.z = .15;
-        z = .15;
-        usleep(400000);
-
-        if(!reposition_hand_client.call(srv))
-        {
-            ROS_ERROR("Failed to call reposition_hand_service");
-            isMoving = false;
-            return false;
-        }
-       
-        sleepUntilDone();
- 
-        //open
-        hand_command.command = "release";
-        gripper_pub.publish(hand_command);
-        usleep(400000);        
-     
-        isCentered = false; 
-    }*/
 
 void Pickup::chooseStage(const sensor_msgs::ImageConstPtr& msg)
 {
     switch(stage)
     {
+    case INITIALIZING:
+        setupHand();
+        break;
     case CENTERING:
         getHandImage(msg);
         break;
@@ -197,8 +145,6 @@ void Pickup::chooseStage(const sensor_msgs::ImageConstPtr& msg)
     case FINISHED:
         return;    
     }
-
-
 }
 
 void Pickup::getHandImage(const sensor_msgs::ImageConstPtr& msg)
@@ -282,10 +228,20 @@ void Pickup::moveArm(int y_shift, int x_shift)
         lowering_x = x;
         lowering_y = y;
         isMoving = false;
+        
+        if(missedLast)
+        {
+            if(++yaw_index > 3)
+                yaw_index = 0;
+        }
+        else
+        {
+            yaw_index = 0;
+        }
+
         return;
     }
    
-
     //If you have gotten this far, we are going to make a movement
     operation_plushie::RepositionHand srv;
 
@@ -323,6 +279,7 @@ bool Pickup::stepDown(double __x, double __y)
     srv.request.x = __x;
     srv.request.y = __y;
     srv.request.z = z - 0.01f;
+    srv.request.yaw = yawDictionary[yaw_index];
     srv.request.isLeft = isLeft;
     
     if(!reposition_hand_client.call(srv))
@@ -332,18 +289,6 @@ bool Pickup::stepDown(double __x, double __y)
     }
     
     return sleepUntilDone(); 
-}
-
-void Pickup::updateEndpoint(baxter_core_msgs::EndpointState eps)
-{
-    x = eps.pose.position.x;
-    y = eps.pose.position.y;
-    z = eps.pose.position.z;
-}
-
-void Pickup::updateIrSensor(sensor_msgs::Range ir_sensor__)
-{
-    ir_sensor = ir_sensor__.range;
 }
 
 bool Pickup::sleepUntilDone()
@@ -383,6 +328,7 @@ void Pickup::fetchNRaise()
     srv.request.y = y;
     srv.request.z = .15;
     z = .15;
+    srv.request.yaw = yawDictionary[yaw_index];
 
     if(!reposition_hand_client.call(srv))
     {
@@ -395,5 +341,40 @@ void Pickup::fetchNRaise()
 
     usleep(400000);
 
-    stage = FINISHED;
+    stage = INITIALIZING;
+}
+
+void Pickup::setupHand()
+{
+    baxter_core_msgs::EndEffectorCommand hand_command;
+    hand_command.id = 65538;
+    hand_command.command = "calibrate";
+    gripper_pub.publish(hand_command);
+
+    hand_command.command = "release";
+    gripper_pub.publish(hand_command);
+   
+    if(missedLast = !isHolding)
+        stage = CENTERING;
+    else {
+        stage = FINISHED;
+        response_member->isComplete = true;
+    }
+}
+
+void Pickup::updateEndpoint(baxter_core_msgs::EndpointState eps)
+{
+    x = eps.pose.position.x;
+    y = eps.pose.position.y;
+    z = eps.pose.position.z;
+}
+
+void Pickup::updateIrSensor(sensor_msgs::Range ir_sensor__)
+{
+    ir_sensor = ir_sensor__.range;
+}
+
+void Pickup::updateEndEffectorState(baxter_core_msgs::EndEffectorState ees)
+{
+    isHolding = ees.gripping;
 }

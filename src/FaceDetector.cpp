@@ -6,15 +6,15 @@ FaceDetector::FaceDetector()
     monitor_pub = n.advertise<baxter_core_msgs::HeadPanCommand>("robot/head/command_head_pan", 1000),
     monitor_sub = n.subscribe<baxter_core_msgs::HeadState>("robot/head/head_state", 10, &FaceDetector::updateHead, this),
     raw_image = n.subscribe<sensor_msgs::Image>(/*"camera/rgb/image_raw"*/"/cameras/head_camera/image", 10, &FaceDetector::call_back, this), 
-    delivery_client = n.serviceClient<image_reader::Wave>("delivery_server");
+    pickup_client = n.serviceClient<operation_plushie::Pickup>("pickup_service");
    
-    if( !face_cascade.load("haarcascade_frontalface_alt.xml") )
+    if( !face_cascade.load("res/haarcascade_frontalface_alt.xml") )
     { 
         printf("--(!)Error loading face cascade\n"); 
     }
     
-    cv::Mat happy_mat = cv::imread("happy.jpeg", CV_LOAD_IMAGE_COLOR), 
-            unsure_mat = cv::imread("unsure.jpeg", CV_LOAD_IMAGE_COLOR);
+    cv::Mat happy_mat = cv::imread("res/happy.jpeg", CV_LOAD_IMAGE_COLOR), 
+            unsure_mat = cv::imread("res/unsure.jpeg", CV_LOAD_IMAGE_COLOR);
     
     happy_face = cv_bridge::CvImage(std_msgs::Header(), "bgr8", happy_mat).toImageMsg();
     unsure_face = cv_bridge::CvImage(std_msgs::Header(), "bgr8", unsure_mat).toImageMsg();
@@ -193,9 +193,12 @@ void FaceDetector::tickFaceCount(int best_index, int confirmed_size, cv::Mat fra
                 isMoving = true;
                 no_face_count = -20;
                 
-                image_reader::Wave srv;
-                srv.request.headPos = head_state.pan;
-                delivery_client.call(srv);
+                operation_plushie::Pickup srv;
+                srv.request.isLeft = true;
+                //srv.request.headPos = head_state.pan;
+                pickup_client.call(srv);
+                
+                while(!srv.response.isComplete);
 
                 isMoving = false;
             } 

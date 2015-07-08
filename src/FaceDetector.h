@@ -1,5 +1,5 @@
 #include <ros/ros.h>
-#include "image_reader/Wave.h"
+#include "operation_plushie/Pickup.h"
 
 #include <baxter_core_msgs/HeadPanCommand.h>
 #include <baxter_core_msgs/HeadState.h>
@@ -27,7 +27,7 @@ private:
     ros::NodeHandle n;
     ros::Publisher monitor_pub, xdisplay_pub;
     ros::Subscriber raw_image, monitor_sub;
-    ros::ServiceClient delivery_client;   
+    ros::ServiceClient pickup_client;   
 
     //For initial face detection 
     cv::CascadeClassifier face_cascade;
