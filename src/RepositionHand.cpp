@@ -3,7 +3,7 @@
 #include <baxter_core_msgs/EndpointState.h>
 #include <baxter_core_msgs/JointCommand.h>
 #include "operation_plushie/RepositionHand.h"
-#include "operation_plushie/RepositionProgress.h"
+#include "operation_plushie/isComplete.h"
 #include <baxter_core_msgs/EndEffectorCommand.h>
 #include "sensor_msgs/JointState.h"
 #include <cmath>
@@ -39,7 +39,7 @@ public:
     void updateEndpoint(baxter_core_msgs::EndpointState);
     bool isPositioned(baxter_core_msgs::EndpointState);
     void updateEffort(sensor_msgs::JointState js);
-    bool progressCallback(operation_plushie::RepositionProgress::Request&, operation_plushie::RepositionProgress::Response&);
+    bool progressCallback(operation_plushie::isComplete::Request&, operation_plushie::isComplete::Response&);
    
     static const int RIGHT, LEFT;
 };
@@ -213,7 +213,7 @@ void RepositionHand::updateEffort(sensor_msgs::JointState js)
     }
 }
 
-bool RepositionHand::progressCallback(operation_plushie::RepositionProgress::Request &req, operation_plushie::RepositionProgress::Response &res)
+bool RepositionHand::progressCallback(operation_plushie::isComplete::Request &req, operation_plushie::isComplete::Response &res)
 {
     res.isComplete = !isMoving;
     res.isStuck = isStuck;

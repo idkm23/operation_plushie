@@ -1,11 +1,12 @@
 #include <ros/ros.h>
 #include "operation_plushie/Pickup.h"
+#include "operation_plushie/isComplete.h"
 
 #include <baxter_core_msgs/HeadPanCommand.h>
 #include <baxter_core_msgs/HeadState.h>
 
 //For the camera's image format conversion to Mat
-#include "sensor_msgs/Image.h"
+#include <sensor_msgs/Image.h>
 #include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/image_encodings.h>
 
@@ -27,7 +28,7 @@ private:
     ros::NodeHandle n;
     ros::Publisher monitor_pub, xdisplay_pub;
     ros::Subscriber raw_image, monitor_sub;
-    ros::ServiceClient pickup_client;   
+    ros::ServiceClient pickup_client, pickup_isComplete_client;   
 
     //For initial face detection 
     cv::CascadeClassifier face_cascade;

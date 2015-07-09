@@ -60,7 +60,7 @@ find_package( OpenCV REQUIRED )
    Deliver.srv
    Pickup.srv
    RepositionHand.srv
-   RepositionProgress.srv
+   isComplete.srv
 #   Service2.srv
  )
 

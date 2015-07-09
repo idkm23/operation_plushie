@@ -2,7 +2,7 @@
 
 #include "operation_plushie/Pickup.h"
 #include "operation_plushie/RepositionHand.h"
-#include "operation_plushie/RepositionProgress.h"
+#include "operation_plushie/isComplete.h"
 
 //inverse kinematics
 #include <baxter_core_msgs/SolvePositionIK.h>
@@ -32,7 +32,7 @@ class Pickup
 {
 private:
     ros::NodeHandle n;
-    ros::ServiceServer pickup_service;
+    ros::ServiceServer pickup_service, isComplete_service;
     ros::ServiceClient reposition_hand_client, reposition_progress_client;
     ros::Publisher arm_pub, xdisplay_pub, gripper_pub;
     ros::Subscriber raw_image, endstate_sub, ir_sensor_sub, is_holding_sub;
@@ -42,7 +42,6 @@ private:
     double lowering_x, lowering_y;
     Stage stage;
     int yaw_index;
-    operation_plushie::Pickup::Response * response_member;
 
     static const int iLowH, iHighH, iLowS, iHighS, iLowV, iHighV;
     static const double yawDictionary[];
@@ -51,6 +50,8 @@ public:
     Pickup();
     void begin_detection();
     
+    bool isComplete(operation_plushie::isComplete::Request&, operation_plushie::isComplete::Response&);
+
     //main service call function
     bool grabPlushie(operation_plushie::Pickup::Request&, operation_plushie::Pickup::Response&);
     
@@ -80,9 +81,10 @@ const int Pickup::iLowH = 99, Pickup::iHighH = 122, Pickup::iLowS = 85,
 Pickup::Pickup() 
 {
     pickup_service = n.advertiseService("pickup_service", &Pickup::grabPlushie, this);
+    isComplete_service = n.advertiseService("pickup_isComplete_service", &Pickup::isComplete, this);
     reposition_hand_client = n.serviceClient<operation_plushie::RepositionHand>("reposition_hand_service");
     xdisplay_pub = n.advertise<sensor_msgs::Image>("/robot/xdisplay", 1000);
-    reposition_progress_client = n.serviceClient<operation_plushie::RepositionProgress>("reposition_progress_service");
+    reposition_progress_client = n.serviceClient<operation_plushie::isComplete>("reposition_progress_service");
  
     x = 0.6;
     y = 0.5;
@@ -119,7 +121,6 @@ bool Pickup::grabPlushie(operation_plushie::Pickup::Request &req, operation_plus
     is_holding_sub = n.subscribe<baxter_core_msgs::EndEffectorState>(
         std::string("/robot/end_effector/") + (isLeft ? "left" : "right") + "_gripper/state", 10, &Pickup::updateEndEffectorState, this);
 
-    response_member = &res;
     yaw_index = -1;
     stage = INITIALIZING;
         
@@ -294,7 +295,7 @@ bool Pickup::stepDown(double __x, double __y)
 bool Pickup::sleepUntilDone()
 {
     ROS_INFO("Entered sleepUntilDone!\n");
-    operation_plushie::RepositionProgress srv;
+    operation_plushie::isComplete srv;
     while(!srv.response.isComplete)
     {
         reposition_progress_client.call(srv);
@@ -358,7 +359,6 @@ void Pickup::setupHand()
         stage = CENTERING;
     else {
         stage = FINISHED;
-        response_member->isComplete = true;
     }
 }
 
@@ -377,4 +377,10 @@ void Pickup::updateIrSensor(sensor_msgs::Range ir_sensor__)
 void Pickup::updateEndEffectorState(baxter_core_msgs::EndEffectorState ees)
 {
     isHolding = ees.gripping;
+}
+
+bool Pickup::isComplete(operation_plushie::isComplete::Request &req, operation_plushie::isComplete::Response &res) 
+{
+    res.isComplete = (stage == FINISHED);
+    return true;
 }

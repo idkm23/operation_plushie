@@ -7,7 +7,8 @@ FaceDetector::FaceDetector()
     monitor_sub = n.subscribe<baxter_core_msgs::HeadState>("robot/head/head_state", 10, &FaceDetector::updateHead, this),
     raw_image = n.subscribe<sensor_msgs::Image>(/*"camera/rgb/image_raw"*/"/cameras/head_camera/image", 10, &FaceDetector::call_back, this), 
     pickup_client = n.serviceClient<operation_plushie::Pickup>("pickup_service");
-   
+    pickup_isComplete_client = n.serviceClient<operation_plushie::isComplete>("pickup_isComplete_service");  
+ 
     if( !face_cascade.load("res/haarcascade_frontalface_alt.xml") )
     { 
         printf("--(!)Error loading face cascade\n"); 
@@ -80,12 +81,18 @@ void FaceDetector::detectAndDisplay(cv::Mat frame)
     	    monitor_pub.publish(msg);
         }
     } 
+    
+    if(no_face_count >= -1)
+        xdisplay_pub.publish(unsure_face);
+    else
+        xdisplay_pub.publish(happy_face);
 
+    /*
     if(no_face_count == 1)
         xdisplay_pub.publish(unsure_face);
-    else if(no_face_count == -1) {
+    else if(no_face_count == -1) 
         xdisplay_pub.publish(happy_face);
-    }
+    */
 
     cv::imshow("Test", frame);
     cv::waitKey(10);
@@ -128,13 +135,11 @@ void FaceDetector::addConsistent(cv::Rect r)
     {
             if(isOverlapping(r, consistent_rects[i].rect))
             {
-                ROS_INFO("Overlap found");
                 consistent_rects[i].rect = r;
                 consistent_rects[i].rating += 1.1;
                 return;
             }
     }
-    ROS_INFO("Overlap not found");
     ConsistentRect newRect;
     newRect.rect = r;
     newRect.rating = 1.1;
@@ -196,9 +201,15 @@ void FaceDetector::tickFaceCount(int best_index, int confirmed_size, cv::Mat fra
                 operation_plushie::Pickup srv;
                 srv.request.isLeft = true;
                 //srv.request.headPos = head_state.pan;
+               
+                //sets stage in pickup to initializing
                 pickup_client.call(srv);
                 
-                while(!srv.response.isComplete);
+                operation_plushie::isComplete pickup_progress;
+ 
+                do {
+                    pickup_isComplete_client.call(pickup_progress);
+                } while(!pickup_progress.response.isComplete);
 
                 isMoving = false;
             } 
