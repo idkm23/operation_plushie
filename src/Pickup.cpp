@@ -26,6 +26,9 @@
 //for IR sensor
 #include <sensor_msgs/Range.h>
 
+//for button
+#include "baxter_core_msgs/DigitalIOState.h"
+
 enum Stage {INITIALIZING, CENTERING, LOWERING, RETURNING, FINISHED};
 
 class Pickup 
@@ -35,8 +38,8 @@ private:
     ros::ServiceServer pickup_service, isComplete_service;
     ros::ServiceClient reposition_hand_client, reposition_progress_client;
     ros::Publisher arm_pub, xdisplay_pub, gripper_pub;
-    ros::Subscriber raw_image, endstate_sub, ir_sensor_sub, is_holding_sub;
-    bool isCentered, isMoving, isLeft, isHolding, missedLast;
+    ros::Subscriber raw_image, endstate_sub, ir_sensor_sub, is_holding_sub, ok_button_sub;
+    bool isCentered, isMoving, isLeft, isHolding, isPressed, missedLast;
     double x, y, z;
     double ir_sensor;
     double lowering_x, lowering_y;
@@ -58,6 +61,7 @@ public:
     void updateEndpoint(baxter_core_msgs::EndpointState);
     void updateIrSensor(sensor_msgs::Range);
     void updateEndEffectorState(baxter_core_msgs::EndEffectorState);
+    void updateOKButtonState(baxter_core_msgs::DigitalIOState);
 
     void chooseStage(const sensor_msgs::ImageConstPtr&);
     
@@ -121,6 +125,9 @@ bool Pickup::grabPlushie(operation_plushie::Pickup::Request &req, operation_plus
     is_holding_sub = n.subscribe<baxter_core_msgs::EndEffectorState>(
         std::string("/robot/end_effector/") + (isLeft ? "left" : "right") + "_gripper/state", 10, &Pickup::updateEndEffectorState, this);
 
+    ok_button_sub = n.subscribe<baxter_core_msgs::DigitalIOState>(
+        std::string("/robot/digital_io/") + (isLeft ? "left" : "right") + "_itb_button0/state", 10, &Pickup::updateOKButtonState, this);
+    
     yaw_index = -1;
     stage = INITIALIZING;
         
@@ -347,6 +354,14 @@ void Pickup::fetchNRaise()
 
 void Pickup::setupHand()
 {
+    if(isHolding)
+    {
+        ROS_INFO("Holding something!");
+
+        if(!isPressed)
+            return;
+    }
+
     baxter_core_msgs::EndEffectorCommand hand_command;
     hand_command.id = 65538;
     hand_command.command = "calibrate";
@@ -377,6 +392,11 @@ void Pickup::updateIrSensor(sensor_msgs::Range ir_sensor__)
 void Pickup::updateEndEffectorState(baxter_core_msgs::EndEffectorState ees)
 {
     isHolding = ees.gripping;
+}
+
+void Pickup::updateOKButtonState(baxter_core_msgs::DigitalIOState ok)
+{
+    isPressed = ok.state;
 }
 
 bool Pickup::isComplete(operation_plushie::isComplete::Request &req, operation_plushie::isComplete::Response &res) 
