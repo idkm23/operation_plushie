@@ -1,4 +1,7 @@
 #include "FaceDetector.h"
+#include <unistd.h>
+#include <stdio.h>
+#include <errno.h>
 
 FaceDetector::FaceDetector() 
 {
@@ -8,14 +11,18 @@ FaceDetector::FaceDetector()
     raw_image = n.subscribe<sensor_msgs::Image>(/*"camera/rgb/image_raw"*/"/cameras/head_camera/image", 10, &FaceDetector::call_back, this), 
     pickup_client = n.serviceClient<operation_plushie::Pickup>("pickup_service");
     pickup_isComplete_client = n.serviceClient<operation_plushie::isComplete>("pickup_isComplete_service");  
- 
-    if( !face_cascade.load("res/haarcascade_frontalface_alt.xml") )
+   char cwd[1024];
+   if (getcwd(cwd, sizeof(cwd)) != NULL)
+       fprintf(stdout, "Current working dir: %s\n", cwd);
+   else
+       perror("getcwd() error");
+    if( !face_cascade.load("../../../res/haarcascade_frontalface_alt.xml") )
     { 
         printf("--(!)Error loading face cascade\n"); 
     }
     
-    cv::Mat happy_mat = cv::imread("res/happy.jpeg", CV_LOAD_IMAGE_COLOR), 
-            unsure_mat = cv::imread("res/unsure.jpeg", CV_LOAD_IMAGE_COLOR);
+    cv::Mat happy_mat = cv::imread("../../../res/happy.jpeg", CV_LOAD_IMAGE_COLOR), 
+            unsure_mat = cv::imread("../../../res/unsure.jpeg", CV_LOAD_IMAGE_COLOR);
     
     happy_face = cv_bridge::CvImage(std_msgs::Header(), "bgr8", happy_mat).toImageMsg();
     unsure_face = cv_bridge::CvImage(std_msgs::Header(), "bgr8", unsure_mat).toImageMsg();

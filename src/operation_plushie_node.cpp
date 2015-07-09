@@ -2,7 +2,7 @@
 
 int main(int argc, char** argv)
 {
-    ros::init(argc, argv, "image_reader_node");
+    ros::init(argc, argv, "operation_plushie_node");
     FaceDetector fd;
     fd.begin_detection();   
  
