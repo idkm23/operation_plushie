@@ -38,7 +38,7 @@ private:
     ros::ServiceServer pickup_service, isComplete_service;
     ros::ServiceClient reposition_hand_client, reposition_progress_client;
     ros::Publisher arm_pub, xdisplay_pub, gripper_pub;
-    ros::Subscriber raw_image, endstate_sub, ir_sensor_sub, is_holding_sub, ok_button_sub;
+    ros::Subscriber raw_image, endstate_sub, ir_sensor_sub, is_holding_sub;
     bool isCentered, isMoving, isLeft, isHolding, isPressed, missedLast;
     double x, y, z;
     double ir_sensor;
@@ -61,7 +61,6 @@ public:
     void updateEndpoint(baxter_core_msgs::EndpointState);
     void updateIrSensor(sensor_msgs::Range);
     void updateEndEffectorState(baxter_core_msgs::EndEffectorState);
-    void updateOKButtonState(baxter_core_msgs::DigitalIOState);
 
     void chooseStage(const sensor_msgs::ImageConstPtr&);
     
@@ -79,8 +78,8 @@ public:
 
 const double Pickup::yawDictionary[] = {0, 3.14 / 4, 3.14 / 2, 3 * 3.14 / 4};
 
-const int Pickup::iLowH = 99, Pickup::iHighH = 122, Pickup::iLowS = 85, 
-          Pickup::iHighS = 150, Pickup::iLowV = 130, Pickup::iHighV = 226;
+const int Pickup::iLowH = 80, Pickup::iHighH = 179, Pickup::iLowS = 46, 
+          Pickup::iHighS = 106, Pickup::iLowV = 150, Pickup::iHighV = 255;
 
 Pickup::Pickup() 
 {
@@ -125,9 +124,6 @@ bool Pickup::grabPlushie(operation_plushie::Pickup::Request &req, operation_plus
     is_holding_sub = n.subscribe<baxter_core_msgs::EndEffectorState>(
         std::string("/robot/end_effector/") + (isLeft ? "left" : "right") + "_gripper/state", 10, &Pickup::updateEndEffectorState, this);
 
-    ok_button_sub = n.subscribe<baxter_core_msgs::DigitalIOState>(
-        std::string("/robot/digital_io/") + (isLeft ? "left" : "right") + "_itb_button0/state", 10, &Pickup::updateOKButtonState, this);
-    
     yaw_index = -1;
     stage = INITIALIZING;
         
@@ -354,25 +350,21 @@ void Pickup::fetchNRaise()
 
 void Pickup::setupHand()
 {
-    if(isHolding)
-    {
-        ROS_INFO("Holding something!");
-
-        if(!isPressed)
-            return;
-    }
-
-    baxter_core_msgs::EndEffectorCommand hand_command;
-    hand_command.id = 65538;
-    hand_command.command = "calibrate";
-    gripper_pub.publish(hand_command);
-
-    hand_command.command = "release";
-    gripper_pub.publish(hand_command);
-   
     if(missedLast = !isHolding)
+    {
+        ROS_INFO("i am trying to open and it wont");
+        baxter_core_msgs::EndEffectorCommand hand_command;
+        hand_command.id = 65538;
+        hand_command.command = "calibrate";
+        gripper_pub.publish(hand_command);
+
+        hand_command.command = "release";
+        gripper_pub.publish(hand_command);
+   
         stage = CENTERING;
-    else {
+    }
+    else 
+    {
         stage = FINISHED;
     }
 }
@@ -392,11 +384,6 @@ void Pickup::updateIrSensor(sensor_msgs::Range ir_sensor__)
 void Pickup::updateEndEffectorState(baxter_core_msgs::EndEffectorState ees)
 {
     isHolding = ees.gripping;
-}
-
-void Pickup::updateOKButtonState(baxter_core_msgs::DigitalIOState ok)
-{
-    isPressed = ok.state;
 }
 
 bool Pickup::isComplete(operation_plushie::isComplete::Request &req, operation_plushie::isComplete::Response &res) 

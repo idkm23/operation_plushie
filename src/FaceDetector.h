@@ -1,5 +1,6 @@
 #include <ros/ros.h>
 #include "operation_plushie/Pickup.h"
+#include "operation_plushie/Delivery.h"
 #include "operation_plushie/isComplete.h"
 
 #include <baxter_core_msgs/HeadPanCommand.h>
@@ -17,6 +18,8 @@
 
 #include <string>
 
+enum Stage {PICKUP, DELIVER};
+
 typedef struct {
     double rating;
     cv::Rect rect;
@@ -28,15 +31,16 @@ private:
     ros::NodeHandle n;
     ros::Publisher monitor_pub, xdisplay_pub;
     ros::Subscriber raw_image, monitor_sub;
-    ros::ServiceClient pickup_client, pickup_isComplete_client;   
-
+    ros::ServiceClient pickup_client, pickup_isComplete_client, delivery_client, delivery_isComplete_client;   
+    
     //For initial face detection 
     cv::CascadeClassifier face_cascade;
     cv::RNG rng;
 
     baxter_core_msgs::HeadState head_state;
-    sensor_msgs::ImagePtr happy_face, unsure_face;
+    sensor_msgs::ImagePtr happy_face, unsure_face, lemon_face;
 
+    Stage state;
     int no_face_count;
     bool isMoving;
     std::vector<ConsistentRect> consistent_rects;
@@ -54,4 +58,8 @@ public:
     int findBestIndex(cv::Mat);
     void tickFaceCount(int, int, cv::Mat);
     std::vector<cv::Rect> findConfirmedFaces(std::vector<cv::Rect>, cv::Mat);
+
+    void chooseStage();
+    void pickup();
+    void deliver();
 };

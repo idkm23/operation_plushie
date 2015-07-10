@@ -57,7 +57,7 @@ find_package( OpenCV REQUIRED )
 ## Generate services in the 'srv' folder
  add_service_files(
    FILES
-   Deliver.srv
+   Delivery.srv
    Pickup.srv
    RepositionHand.srv
    isComplete.srv

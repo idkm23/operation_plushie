@@ -1,7 +1,4 @@
 #include "FaceDetector.h"
-#include <unistd.h>
-#include <stdio.h>
-#include <errno.h>
 
 FaceDetector::FaceDetector() 
 {
@@ -9,25 +6,28 @@ FaceDetector::FaceDetector()
     monitor_pub = n.advertise<baxter_core_msgs::HeadPanCommand>("robot/head/command_head_pan", 1000),
     monitor_sub = n.subscribe<baxter_core_msgs::HeadState>("robot/head/head_state", 10, &FaceDetector::updateHead, this),
     raw_image = n.subscribe<sensor_msgs::Image>(/*"camera/rgb/image_raw"*/"/cameras/head_camera/image", 10, &FaceDetector::call_back, this), 
+    
     pickup_client = n.serviceClient<operation_plushie::Pickup>("pickup_service");
     pickup_isComplete_client = n.serviceClient<operation_plushie::isComplete>("pickup_isComplete_service");  
-   char cwd[1024];
-   if (getcwd(cwd, sizeof(cwd)) != NULL)
-       fprintf(stdout, "Current working dir: %s\n", cwd);
-   else
-       perror("getcwd() error");
+    delivery_client = n.serviceClient<operation_plushie::Delivery>("delivery_service");
+    delivery_isComplete_client = n.serviceClient<operation_plushie::isComplete>("delivery_isComplete_service");
+
     if( !face_cascade.load("../../../res/haarcascade_frontalface_alt.xml") )
     { 
         printf("--(!)Error loading face cascade\n"); 
     }
     
-    cv::Mat happy_mat = cv::imread("../../../res/happy.jpeg", CV_LOAD_IMAGE_COLOR), 
-            unsure_mat = cv::imread("../../../res/unsure.jpeg", CV_LOAD_IMAGE_COLOR);
-    
+    cv::Mat happy_mat = cv::imread("../../../res/happy.jpg", CV_LOAD_IMAGE_COLOR), 
+            unsure_mat = cv::imread("../../../res/unsure.jpg", CV_LOAD_IMAGE_COLOR),
+            lemon_mat = cv::imread("../../../res/big_lemongrab.png", CV_LOAD_IMAGE_COLOR);
+   
+    lemon_face = cv_bridge::CvImage(std_msgs::Header(), "bgr8", lemon_mat).toImageMsg(); 
     happy_face = cv_bridge::CvImage(std_msgs::Header(), "bgr8", happy_mat).toImageMsg();
     unsure_face = cv_bridge::CvImage(std_msgs::Header(), "bgr8", unsure_mat).toImageMsg();
+    
     no_face_count = 20;
     isMoving = false;
+    state = PICKUP;
 }
 
 void FaceDetector::begin_detection()
@@ -41,6 +41,7 @@ void FaceDetector::updateHead(const baxter_core_msgs::HeadState::ConstPtr& msg) 
 
 void FaceDetector::call_back(const sensor_msgs::ImageConstPtr& msg)
 {
+    ROS_INFO("DETECTING AND DISPLAYING");
     if(isMoving)
         return;
 
@@ -76,10 +77,11 @@ void FaceDetector::detectAndDisplay(cv::Mat frame)
     int best_index = findBestIndex(frame);
 
     tickFaceCount(best_index, confirmed_faces.size(), frame); 
- 
+
+    int fromCenter = 1000; 
     if(!head_state.isPanning && confirmed_faces.size() && !isMoving)
     {
-        int fromCenter = consistent_rects[best_index].rect.x - consistent_rects[best_index].rect.width/2 - frame.cols/2; 
+        fromCenter = consistent_rects[best_index].rect.x - consistent_rects[best_index].rect.width/2 - frame.cols/2; 
         if(fromCenter > 50 || fromCenter < -50)
         {
             baxter_core_msgs::HeadPanCommand msg;
@@ -89,17 +91,12 @@ void FaceDetector::detectAndDisplay(cv::Mat frame)
         }
     } 
     
-    if(no_face_count >= -1)
+    if(no_face_count > -1)
+        xdisplay_pub.publish(lemon_face);
+    else if(fromCenter > 50 || fromCenter < -50)
         xdisplay_pub.publish(unsure_face);
     else
         xdisplay_pub.publish(happy_face);
-
-    /*
-    if(no_face_count == 1)
-        xdisplay_pub.publish(unsure_face);
-    else if(no_face_count == -1) 
-        xdisplay_pub.publish(happy_face);
-    */
 
     cv::imshow("Test", frame);
     cv::waitKey(10);
@@ -198,26 +195,15 @@ void FaceDetector::tickFaceCount(int best_index, int confirmed_size, cv::Mat fra
         int fromCenter 
             = consistent_rects[best_index].rect.x - consistent_rects[best_index].rect.width/2 - frame.cols/2;
         
-        if(no_face_count == -1)
+        if(no_face_count <= -1)
         { 
             if(fromCenter < 50 && fromCenter > -50) 
             {
                 isMoving = true;
                 no_face_count = -20;
                 
-                operation_plushie::Pickup srv;
-                srv.request.isLeft = true;
-                //srv.request.headPos = head_state.pan;
+                chooseStage();
                
-                //sets stage in pickup to initializing
-                pickup_client.call(srv);
-                
-                operation_plushie::isComplete pickup_progress;
- 
-                do {
-                    pickup_isComplete_client.call(pickup_progress);
-                } while(!pickup_progress.response.isComplete);
-
                 isMoving = false;
             } 
             else
@@ -262,4 +248,50 @@ std::vector<cv::Rect> FaceDetector::findConfirmedFaces(std::vector<cv::Rect> raw
     }
 
     return confirmed_faces;
+}
+
+void FaceDetector::chooseStage()
+{
+    switch(state)
+    {
+    case PICKUP:
+        pickup();
+        break;
+    case DELIVER:
+        deliver();
+        break;
+    }
 } 
+
+void FaceDetector::pickup()
+{
+    //TODO: fix this assumption (always left) 
+    operation_plushie::Pickup srv;
+    srv.request.isLeft = true;
+    //sets stage in pickup to initializing
+    pickup_client.call(srv);
+    
+    operation_plushie::isComplete pickup_progress;
+
+    do {
+        pickup_isComplete_client.call(pickup_progress);
+    } while(!pickup_progress.response.isComplete);
+    
+    state = DELIVER;
+}
+
+void FaceDetector::deliver()
+{
+    operation_plushie::Delivery srv;
+    srv.request.headPos = head_state.pan;
+    
+    delivery_client.call(srv);
+
+    operation_plushie::isComplete delivery_progress;
+
+    do {
+        delivery_isComplete_client.call(delivery_progress);
+    } while(!delivery_progress.response.isComplete);
+    
+    state = PICKUP;
+}
