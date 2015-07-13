@@ -201,6 +201,12 @@ bool RepositionHand::isPositioned(baxter_core_msgs::EndpointState eps)
 
 void RepositionHand::updateEffort(sensor_msgs::JointState js)
 {
+    int indexSpacing = (isLeft ? 0 : 7);
+    for(int i = 0; i < 8; i++)
+    {
+        ROS_INFO("%d : %f", i, js.effort[(2 + i + indexSpacing)]);
+    }
+
     s1_torque = js.effort[(isLeft ? 5 : 12)];
     if(fabs(s1_torque - consistent_torque) < .15)
     {

@@ -26,7 +26,6 @@ FaceDetector::FaceDetector()
     unsure_face = cv_bridge::CvImage(std_msgs::Header(), "bgr8", unsure_mat).toImageMsg();
     
     no_face_count = 20;
-    isMoving = false;
     state = PICKUP;
 }
 
@@ -41,10 +40,6 @@ void FaceDetector::updateHead(const baxter_core_msgs::HeadState::ConstPtr& msg) 
 
 void FaceDetector::call_back(const sensor_msgs::ImageConstPtr& msg)
 {
-    ROS_INFO("DETECTING AND DISPLAYING");
-    if(isMoving)
-        return;
-
     cv_bridge::CvImagePtr cv_ptr_cam;
     try 
     {   
@@ -79,7 +74,7 @@ void FaceDetector::detectAndDisplay(cv::Mat frame)
     tickFaceCount(best_index, confirmed_faces.size(), frame); 
 
     int fromCenter = 1000; 
-    if(!head_state.isPanning && confirmed_faces.size() && !isMoving)
+    if(!head_state.isPanning && confirmed_faces.size())
     {
         fromCenter = consistent_rects[best_index].rect.x - consistent_rects[best_index].rect.width/2 - frame.cols/2; 
         if(fromCenter > 50 || fromCenter < -50)
@@ -91,7 +86,7 @@ void FaceDetector::detectAndDisplay(cv::Mat frame)
         }
     } 
     
-    if(no_face_count > -1)
+    if(no_face_count > 0)
         xdisplay_pub.publish(lemon_face);
     else if(fromCenter > 50 || fromCenter < -50)
         xdisplay_pub.publish(unsure_face);
@@ -130,7 +125,7 @@ bool FaceDetector::properColor(cv::Mat portion)
 
     double percentage = (double) cv::countNonZero(imgThresholded) / (imgThresholded.rows*imgThresholded.cols);
    
-    return (percentage > .35);
+    return (percentage > .31 && percentage < .7);
 }
 
 void FaceDetector::addConsistent(cv::Rect r)
@@ -190,6 +185,8 @@ int FaceDetector::findBestIndex(cv::Mat frame)
 }
 
 void FaceDetector::tickFaceCount(int best_index, int confirmed_size, cv::Mat frame) {
+    const int FACE_COUNT = 5;    
+
     if(confirmed_size)
     {
         int fromCenter 
@@ -199,12 +196,9 @@ void FaceDetector::tickFaceCount(int best_index, int confirmed_size, cv::Mat fra
         { 
             if(fromCenter < 50 && fromCenter > -50) 
             {
-                isMoving = true;
-                no_face_count = -20;
+                no_face_count = -FACE_COUNT;
                 
                 chooseStage();
-               
-                isMoving = false;
             } 
             else
             {
@@ -213,7 +207,7 @@ void FaceDetector::tickFaceCount(int best_index, int confirmed_size, cv::Mat fra
         }
 
         if(no_face_count < 0)
-            no_face_count = -20;
+            no_face_count = -FACE_COUNT;
         else
             no_face_count--;
     
@@ -221,7 +215,7 @@ void FaceDetector::tickFaceCount(int best_index, int confirmed_size, cv::Mat fra
     else 
     {
         if(no_face_count > 0)
-            no_face_count = 20;
+            no_face_count = FACE_COUNT;
         else
             no_face_count++;
     }   
@@ -261,6 +255,8 @@ void FaceDetector::chooseStage()
         deliver();
         break;
     }
+
+    no_face_count = 0;
 } 
 
 void FaceDetector::pickup()

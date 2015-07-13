@@ -352,7 +352,6 @@ void Pickup::setupHand()
 {
     if(missedLast = !isHolding)
     {
-        ROS_INFO("i am trying to open and it wont");
         baxter_core_msgs::EndEffectorCommand hand_command;
         hand_command.id = 65538;
         hand_command.command = "calibrate";

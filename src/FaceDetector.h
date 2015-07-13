@@ -17,6 +17,7 @@
 #include "opencv2/imgproc/imgproc.hpp"
 
 #include <string>
+#include <pthread.h>
 
 enum Stage {PICKUP, DELIVER};
 
@@ -42,7 +43,6 @@ private:
 
     Stage state;
     int no_face_count;
-    bool isMoving;
     std::vector<ConsistentRect> consistent_rects;
 
 public:
