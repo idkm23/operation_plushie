@@ -1,0 +1,7 @@
+<launch>
+  <include file="$(find openni_launch)/launch/openni.launch" />
+
+  <!-- throughput de-fuglificating part 1/2 -->
+  <node name="head_compressed_from_baxter" type="republish" pkg="image_transport" output="screen" args="raw in:=/cameras/head_camera/image out:=/cameras/republished/head_camera" />
+  <node name="left_hand_compressed_from_baxter" type="republish" pkg="image_transport" output="screen" args="raw in:=/cameras/left_hand_camera/image out:=/cameras/republished/left_hand_camera" />
+</launch>
