@@ -5,4 +5,7 @@
 <node name="reposition_hand_node" pkg="operation_plushie" type="reposition_hand_node" required="true" output="screen" />
 <node name="operation_plushie_node" pkg="operation_plushie" type="operation_plushie_node" required="true" cwd="node" />
 
+  <!-- kinect driver and transform publisher -->
+  <node name="kinect_spawner" pkg="operation_plushie" type="kinect_stuff" output="screen" />
+
 </launch>
