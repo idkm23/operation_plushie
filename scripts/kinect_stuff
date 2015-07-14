@@ -3,7 +3,7 @@ set -e
 set -x
 spawn()
 {
-  echo $@ 1>&2 &
+  $@ 1>&2 &
   echo $!
 }
 
