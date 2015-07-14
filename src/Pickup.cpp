@@ -113,7 +113,7 @@ bool Pickup::grabPlushie(operation_plushie::Pickup::Request &req, operation_plus
         std::string("/robot/end_effector/") + (isLeft?"left":"right") + "_gripper/command", 1000);
     
     raw_image = n.subscribe<sensor_msgs::Image>(
-        std::string("cameras/") + (isLeft?"left":"right") + "_hand_camera/image", 1, &Pickup::chooseStage, this);
+        std::string("/republished/") + (isLeft?"left":"right") + "_hand_camera/image", 1, &Pickup::chooseStage, this);
    
     endstate_sub = n.subscribe<baxter_core_msgs::EndpointState>(
         std::string("/robot/limb/") + (isLeft ? "left" : "right") + "/endpoint_state", 10, &Pickup::updateEndpoint, this);

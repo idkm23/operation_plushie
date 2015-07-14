@@ -7,6 +7,7 @@
 #include <baxter_core_msgs/HeadState.h>
 
 //For the camera's image format conversion to Mat
+#include <sensor_msgs/CompressedImage.h>
 #include <sensor_msgs/Image.h>
 #include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/image_encodings.h>

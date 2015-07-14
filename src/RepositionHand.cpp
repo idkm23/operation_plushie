@@ -177,7 +177,7 @@ void RepositionHand::updateEndpoint(baxter_core_msgs::EndpointState eps)
             return;
         }
 
-        ROS_INFO("consistent_torque_count: %d, c_pose_count: %d", consistent_torque_count, c_pose_count); 
+        //ROS_INFO("consistent_torque_count: %d, c_pose_count: %d", consistent_torque_count, c_pose_count); 
         
         joint_pub[(isLeft ? LEFT : RIGHT)].publish(msg);        
         
@@ -204,7 +204,7 @@ void RepositionHand::updateEffort(sensor_msgs::JointState js)
     int indexSpacing = (isLeft ? 0 : 7);
     for(int i = 0; i < 8; i++)
     {
-        ROS_INFO("%d : %f", i, js.effort[(2 + i + indexSpacing)]);
+        //ROS_INFO("%d : %f", i, js.effort[(2 + i + indexSpacing)]);
     }
 
     s1_torque = js.effort[(isLeft ? 5 : 12)];
