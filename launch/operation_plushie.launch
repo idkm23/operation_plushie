@@ -3,7 +3,7 @@
   <node name="pickup_node" pkg="operation_plushie" type="pickup_node" required="true" />
   <node name="delivery_node" pkg="operation_plushie" type="delivery_node" required="true" />
   <node name="reposition_hand_node" pkg="operation_plushie" type="reposition_hand_node" required="true" output="screen" />
-  <node name="operation_plushie_node" pkg="operation_plushie" type="operation_plushie_node" required="true" cwd="node" />
+  <node name="operation_plushie_node" pkg="operation_plushie" type="operation_plushie_node" required="true" />
 
   <!-- kinect driver and transform publisher -->
   <node name="kinect_spawner" pkg="operation_plushie" type="kinect_stuff" output="screen" />
