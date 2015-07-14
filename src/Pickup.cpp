@@ -78,8 +78,8 @@ public:
 
 const double Pickup::yawDictionary[] = {0, 3.14 / 4, 3.14 / 2, 3 * 3.14 / 4};
 
-const int Pickup::iLowH = 80, Pickup::iHighH = 179, Pickup::iLowS = 46, 
-          Pickup::iHighS = 106, Pickup::iLowV = 150, Pickup::iHighV = 255;
+const int Pickup::iLowH = 80, Pickup::iHighH = 179, Pickup::iLowS = 0, 
+          Pickup::iHighS = 255, Pickup::iLowV = 240, Pickup::iHighV = 255;
 
 Pickup::Pickup() 
 {
