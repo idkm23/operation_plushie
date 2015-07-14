@@ -1,0 +1,34 @@
+#!/bin/bash
+set -e
+set -x
+spawn()
+{
+  $@ 1>&2 &
+  echo $!
+}
+
+# start a few things backgrounded and concat their PIDs
+PIDS=""
+for x in "roslaunch openni_launch openni.launch $@" "roslaunch operation_plushie kinect_tfs.launch $@"; do
+  PIDS="$PIDS `spawn $x`"
+done
+
+# if we die, take them all with us
+trap "for p in $PIDS; do kill -9 $p >& /dev/null || true; done; set +x; set +e" EXIT
+
+# wait for the openni node's dynamic reconfigure to wake up
+while ! rosrun dynamic_reconfigure dynparam list | grep -q '/driver'; do
+  sleep 1
+done
+
+FQNN="`rosrun dynamic_reconfigure dynparam list | grep -q '/driver'`"
+
+while ! rosrun dynamic_reconfigure dynparam get $FQNN | grep -q depth_registration; done
+  sleep 1
+done
+
+rosrun dynamic_reconfigure dynparam set $FQNN depth_registration true
+
+wait $PIDS
+
+exit 0
