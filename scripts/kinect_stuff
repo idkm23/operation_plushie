@@ -4,7 +4,7 @@ spawn()
 {
   $@ 1>&2 &
   echo $!
-  echo "$@ ==> $!"
+  echo "$@ ==> $!" 1>&2
 }
 ordietrying()
 {
