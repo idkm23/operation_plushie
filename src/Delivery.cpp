@@ -151,13 +151,13 @@ bool Delivery::deliver(operation_plushie::Deliver::Request &req, operation_plush
         origPose.names.push_back(names[i]);
     }    
 
-    //Move the arm into a waving position
+    //Move the arm into a outstretched position
     stretchPose.command.push_back(0);
-    stretchPose.command.push_back(0);
+    stretchPose.command.push_back(0.5);
     stretchPose.command.push_back(getArmPos(req.headPos));
+    stretchPose.command.push_back(-0.5);
     stretchPose.command.push_back(0);
-    stretchPose.command.push_back(0);
-    stretchPose.command.push_back(0);
+    stretchPose.command.push_back(0.5);
     stretchPose.command.push_back(0);
 
     stretchPose.mode = 1; //Set it in position mode
