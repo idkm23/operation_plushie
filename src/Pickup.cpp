@@ -206,8 +206,8 @@ void Pickup::getHandImage(const sensor_msgs::ImageConstPtr& msg)
         cv::ellipse(imgThresholded, cv::Point(imgThresholded.cols/2 + XTRANS, imgThresholded.rows/2 + YTRANS), cv::Size(10, 10), 360, 0, 360, cv::Scalar(255, 0, 0), 3, 8);
         cv::ellipse( imgThresholded, cv::Point(posX, posY), cv::Size(10, 10), 360, 0, 360, cv::Scalar(100, 100, 255), 5, 8);
 
-        sensor_msgs::ImagePtr xdisplay_img = cv_bridge::CvImage(std_msgs::Header(), "bgr8", imgThresholded).toImageMsg();
-        xdisplay_pub.publish(xdisplay_img);
+       // sensor_msgs::ImagePtr xdisplay_img = cv_bridge::CvImage(std_msgs::Header(), "bgr8", imgThresholded).toImageMsg();
+       // xdisplay_pub.publish(xdisplay_img);
         
         cv::imshow("Thresh", imgThresholded);
         

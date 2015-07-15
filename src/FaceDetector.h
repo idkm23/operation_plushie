@@ -44,6 +44,7 @@ private:
 
     Stage state;
     int no_face_count;
+    bool skipNextFrame;
     std::vector<ConsistentRect> consistent_rects;
 
 public:

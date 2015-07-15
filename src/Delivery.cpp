@@ -152,12 +152,12 @@ bool Delivery::deliver(operation_plushie::Deliver::Request &req, operation_plush
     }    
 
     //Move the arm into a outstretched position
-    stretchPose.command.push_back(-3.028);
-    stretchPose.command.push_back(-0.25);
+    stretchPose.command.push_back(-1.5);
+    stretchPose.command.push_back(0.2);
     stretchPose.command.push_back(getArmPos(req.headPos));
-    stretchPose.command.push_back(0.25);
-    stretchPose.command.push_back(3.05);
-    stretchPose.command.push_back(0.1);
+    stretchPose.command.push_back(0);
+    stretchPose.command.push_back(1.5);
+    stretchPose.command.push_back(-0.1);
     stretchPose.command.push_back(0);
 
     stretchPose.mode = 1; //Set it in position mode
