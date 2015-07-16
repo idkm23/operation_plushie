@@ -1,6 +1,6 @@
 <launch>
 
-    <machine name="leviathan" address="leviathan" />
+    <machine name="leviathan" address="leviathan" env-loader="~/indigo/src/operation_plushie/scripts/leviathan_env.sh" />
 
     <node name="pickup_node" pkg="operation_plushie" type="pickup_node" required="true" />
     <node name="delivery_node" pkg="operation_plushie" type="delivery_node" required="true" />
@@ -10,16 +10,8 @@
   <!-- kinect driver and transform publisher -->
     <node name="kinect_spawner" pkg="operation_plushie" type="kinect_stuff" output="screen" machine="leviathan" />
 
-<!--    <node name="leviathan_launch" pkg="operation_plushie" machine="leviathan" type="test2.sh" output="screen" />-->
-
-  <!-- throughput de-fuglificating part 1/2 -->
-    <!-- <node name="head_compressed_from_baxter" type="republish" pkg="image_transport" machine="leviathan" output="screen" args="raw in:=/cameras/head_camera/image out:=/cameras/republished/head_camera" />
-    <node name="left_hand_compressed_from_baxter" type="republish" pkg="image_transport" machine="leviathan" output="screen" args="raw in:=/cameras/left_hand_camera/image out:=/cameras/republished/left_hand_camera" />-->
-
   <!-- local publishers of republished theora-transported images from kinect pc - throughput optimization 2/2 -->
     <node name="local_head_compressed_to_raw" type="republish" pkg="image_transport" output="screen" args="theora in:=/cameras/republished/head_camera raw out:=/republished/head_camera/image" />
     <node name="local_left_hand_compressed_to_raw" type="republish" pkg="image_transport" output="screen" args="theora in:=/cameras/republished/head_camera raw out:=/republished/head_camera/image" />
-
-  <!-- <include file="$(find openni_launch)/launch/openni.launch" /> -->
 
 </launch>
