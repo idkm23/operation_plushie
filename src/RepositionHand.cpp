@@ -94,7 +94,7 @@ bool RepositionHand::callback(operation_plushie::RepositionHand::Request &req, o
     oriy = (maths1 * mathc2 + maths1 * mathc3 + mathc1 * maths2 * maths3) / oriw4;
     oriz = (-maths1 * maths3 + mathc1 * maths2 * mathc3 + maths2) / oriw4;
 
-    ps.header.frame_id = "base"; 
+    ps.header.frame_id = req.frame; 
     ps.header.stamp = ros::Time::now();
 
     ps.pose.position.x = (req.x > 0.8 ? 0.8 : req.x);

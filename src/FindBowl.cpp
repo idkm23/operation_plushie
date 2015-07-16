@@ -15,8 +15,8 @@
 #include <pcl/sample_consensus/model_types.h>
 #include <pcl/segmentation/sac_segmentation.h>
 
-#include <pcl_reader/Ping.h>
-#include <pcl_reader/BowlValues.h>
+#include <operation_plushie/Ping.h>
+#include <operation_plushie/BowlValues.h>
 
 //cloud > cloud filter > cloud cluster > cylinder
 
@@ -31,19 +31,19 @@ private:
     ros::ServiceServer bowl_service, bowl_values_service;
     ros::Subscriber depth_sub;
     Status stage;
-    int b_x, b_y, b_z;
+    double b_x, b_y;
 
 public:
     FindBowl();
     void begin_detection();
-    bool bowl_cb(pcl_reader::Ping::Request&, pcl_reader::Ping::Response&);
-    bool bowl_values_cb(pcl_reader::BowlValues::Request&, pcl_reader::BowlValues::Response&);
+    bool bowl_cb(operation_plushie::Ping::Request&, operation_plushie::Ping::Response&);
+    bool bowl_values_cb(operation_plushie::BowlValues::Request&, operation_plushie::BowlValues::Response&);
     void cloud_cb(const sensor_msgs::PointCloud2ConstPtr& input);
 };
 
 FindBowl::FindBowl()
 {
-    bowl_service = nh.advertiseService("find_bowl_service", &FindBowl::bowl_cb, this); 
+    bowl_service = nh.advertiseService("bowl_service", &FindBowl::bowl_cb, this); 
     bowl_values_service = nh.advertiseService("bowl_values_service", &FindBowl::bowl_values_cb, this); 
     depth_sub = nh.subscribe ("/camera/depth_registered/points", 1, &FindBowl::cloud_cb, this);
 }
@@ -55,13 +55,12 @@ FindBowl::begin_detection()
 }
 
 bool
-FindBowl::bowl_cb(pcl_reader::Ping::Request &req, pcl_reader::Ping::Response &res)
+FindBowl::bowl_cb(operation_plushie::Ping::Request &req, operation_plushie::Ping::Response &res)
 {
     stage = SEARCH;
 
     b_x = -1337;
     b_y = -1337;
-    b_z = -1337;
 
     return true;
 }
@@ -159,8 +158,9 @@ FindBowl::cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 
     b_x = cloud_cylinder->points[0].x;
     b_y = cloud_cylinder->points[0].y;
-    b_z = cloud_cylinder->points[0].z;
-    
+   
+    ROS_INFO("Finished x: %f, y: %f", b_x, b_y);
+ 
     stage = FINISHED;
 
 /*   Uncomment to enable filtered PC publishing
@@ -176,10 +176,9 @@ FindBowl::cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 */
 }
 
-bool FindBowl::bowl_values_cb(pcl_reader::BowlValues::Request &req, pcl_reader::BowlValues::Response &res) 
+bool FindBowl::bowl_values_cb(operation_plushie::BowlValues::Request &req, operation_plushie::BowlValues::Response &res) 
 {
     res.x = b_x;
     res.y = b_y;
-    res.z = b_z;
     return true;
 }

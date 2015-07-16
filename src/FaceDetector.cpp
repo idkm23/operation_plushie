@@ -9,7 +9,7 @@ FaceDetector::FaceDetector()
     
     pickup_client = n.serviceClient<operation_plushie::Pickup>("pickup_service");
     pickup_isComplete_client = n.serviceClient<operation_plushie::isComplete>("pickup_isComplete_service");  
-    delivery_client = n.serviceClient<operation_plushie::Delivery>("delivery_service");
+    delivery_client = n.serviceClient<operation_plushie::Deliver>("delivery_service");
     delivery_isComplete_client = n.serviceClient<operation_plushie::isComplete>("delivery_isComplete_service");
 
     if( !face_cascade.load("../../../res/haarcascade_frontalface_alt.xml") )
@@ -40,12 +40,6 @@ void FaceDetector::updateHead(const baxter_core_msgs::HeadState::ConstPtr& msg) 
 
 void FaceDetector::call_back(const sensor_msgs::ImageConstPtr& msg)
 {
-    if(skippedFrames != 0)
-    {
-        skippedFrames--;
-        return;
-    }
-
     cv_bridge::CvImagePtr cv_ptr_cam;
     try 
     {   
@@ -285,7 +279,7 @@ void FaceDetector::pickup()
 
 void FaceDetector::deliver()
 {
-    operation_plushie::Delivery srv;
+    operation_plushie::Deliver srv;
     srv.request.headPos = head_state.pan;
     
     delivery_client.call(srv);
