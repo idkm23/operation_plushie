@@ -92,6 +92,8 @@ Pickup::Pickup()
     reposition_hand_client = n.serviceClient<operation_plushie::RepositionHand>("reposition_hand_service");
     xdisplay_pub = n.advertise<sensor_msgs::Image>("/robot/xdisplay", 1000);
     reposition_progress_client = n.serviceClient<operation_plushie::isComplete>("reposition_progress_service");
+    bowl_client = n.serviceClient<operation_plushie::Ping>("bowl_service");
+    bowl_values_client = n.serviceClient<operation_plushie::BowlValues>("bowl_values_service");
  
     x = 0.6;
     y = 0.5;
@@ -106,7 +108,6 @@ void Pickup::begin_detection()
 
 bool Pickup::grabPlushie(operation_plushie::Pickup::Request &req, operation_plushie::Pickup::Response &res)
 {
-    ROS_INFO("Entered pickup");
     isLeft = req.isLeft;
     
     arm_pub = n.advertise<baxter_core_msgs::JointCommand>(
@@ -201,6 +202,7 @@ void Pickup::getHandImage(const sensor_msgs::ImageConstPtr& msg)
 
     if (dArea > 10000)
     {
+        no_sign_of_plushies = 0;
         const int XTRANS = 60, YTRANS = -70;
 
         //calculate the position of the ball
@@ -247,11 +249,11 @@ void Pickup::moveAboveBowl()
         {
             ROS_ERROR("Cannot contact bowl_values_service");
         } 
-
+    
         timeout++;
     } while(srv_values.response.x == -1337 && timeout < 2500);
 
-    if(timeout > 2500) 
+    if(timeout >= 2500) 
     {
         ROS_INFO("Bowl_values_service timed out");    
         return;
@@ -261,10 +263,10 @@ void Pickup::moveAboveBowl()
 
     srv.request.x = srv_values.response.x; 
     srv.request.y = srv_values.response.y;
- 
-    //keeps z the same
-    srv.request.z = z;
+    
+    srv.request.z = .63;
     srv.request.isLeft = isLeft;
+    srv.request.frame = "camera_rgb_optical_frame";
     
     if(!reposition_hand_client.call(srv))
     {
@@ -317,7 +319,8 @@ void Pickup::moveArm(int y_shift, int x_shift)
     //keeps z the same
     srv.request.z = z;
     srv.request.isLeft = isLeft;
-    
+    srv.request.frame = "base";   
+ 
     if(!reposition_hand_client.call(srv))
     {
         ROS_ERROR("Failed to call reposition_hand_service");
@@ -335,7 +338,8 @@ bool Pickup::stepDown(double __x, double __y)
     srv.request.z = z - 0.01f;
     srv.request.yaw = yawDictionary[yaw_index];
     srv.request.isLeft = isLeft;
-    
+    srv.request.frame = "base";   
+ 
     if(!reposition_hand_client.call(srv))
     {
         ROS_ERROR("Failed to call reposition_hand_service in stepDown");
@@ -347,7 +351,6 @@ bool Pickup::stepDown(double __x, double __y)
 
 bool Pickup::sleepUntilDone()
 {
-    ROS_INFO("Entered sleepUntilDone!\n");
     operation_plushie::isComplete srv;
     while(!srv.response.isComplete)
     {
@@ -383,6 +386,7 @@ void Pickup::fetchNRaise()
     srv.request.z = .15;
     z = .15;
     srv.request.yaw = yawDictionary[yaw_index];
+    srv.request.frame = "base";
 
     if(!reposition_hand_client.call(srv))
     {

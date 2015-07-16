@@ -59,7 +59,7 @@ find_package( OpenCV REQUIRED )
 ## Generate services in the 'srv' folder
  add_service_files(
    FILES
-   Delivery.srv
+   Deliver.srv
    Pickup.srv
    RepositionHand.srv
    isComplete.srv
@@ -94,7 +94,7 @@ find_package( OpenCV REQUIRED )
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES operation_plushie_node
-#  CATKIN_DEPENDS roscpp sensor_msgs cv_bridge baxter_core_msgs
+  CATKIN_DEPENDS message_runtime roscpp sensor_msgs cv_bridge baxter_core_msgs
 #  DEPENDS system_lib
 )
 
@@ -127,18 +127,23 @@ include_directories(
  add_dependencies(operation_plushie_node ${catkin_EXPORTED_TARGETS})
  add_dependencies(operation_plushie_node FaceDetector.cpp)
  add_dependencies(operation_plushie_node FaceDetector.h)
+ add_dependencies(operation_plushie_node operation_plushie_generate_messages_cpp)
 
  add_dependencies(delivery_node ${catkin_EXPORTED_TARGETS})
  add_dependencies(delivery_node Delivery.cpp)
+ add_dependencies(delivery_node operation_plushie_generate_messages_cpp)
 
  add_dependencies(pickup_node ${catkin_EXPORTED_TARGETS})
  add_dependencies(pickup_node Pickup.cpp)
+ add_dependencies(pickup_node operation_plushie_generate_messages_cpp)
 
  add_dependencies(reposition_hand_node ${catkin_EXPORTED_TARGETS})
  add_dependencies(reposition_hand_node RepositionHand.cpp)
+ add_dependencies(reposition_hand_node operation_plushie_generate_messages_cpp)
  
- add_dependencies(reposition_hand_node ${catkin_EXPORTED_TARGETS})
+ add_dependencies(find_bowl_node ${catkin_EXPORTED_TARGETS})
  add_dependencies(find_bowl_node FindBowl.cpp)
+ add_dependencies(find_bowl_node operation_plushie_generate_messages_cpp)
 
 ## Specify libraries to link a library or executable target against
  target_link_libraries(operation_plushie_node

@@ -1,6 +1,6 @@
 #include <ros/ros.h>
 #include "operation_plushie/Pickup.h"
-#include "operation_plushie/Delivery.h"
+#include "operation_plushie/Deliver.h"
 #include "operation_plushie/isComplete.h"
 
 #include <baxter_core_msgs/HeadPanCommand.h>
@@ -43,7 +43,7 @@ private:
     sensor_msgs::ImagePtr happy_face, unsure_face, lemon_face;
 
     Stage state;
-    int no_face_count, skippedFrames;
+    int no_face_count;
     std::vector<ConsistentRect> consistent_rects;
 
 public:
