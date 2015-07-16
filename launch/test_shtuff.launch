@@ -1,0 +1,6 @@
+<launch>
+
+    <machine name="T-boy2" address="robot-lab2" />
+
+    <node name="test" pkg="operation_plushie" type="test.sh" machine="T-boy2" output="screen" />
+</launch>
