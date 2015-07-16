@@ -14,6 +14,12 @@
   <build_depend>cv_bridge</build_depend>
   <build_depend>baxter_core_msgs</build_depend>
   <build_depend>message_generation</build_depend>
+  <build_depend>pcl_conversions</build_depend>
+  <build_depend>pcl_ros</build_depend>
+  <build_depend>pcl</build_depend>
+  <run_depend>pcl_conversions</run_depend>
+  <run_depend>pcl_ros</run_depend>
+  <run_depend>pcl</run_depend>
   <run_depend>message_runtime</run_depend>
   <run_depend>baxter_core_msgs</run_depend>
   <run_depend>cv_bridge</run_depend>

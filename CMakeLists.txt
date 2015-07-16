@@ -10,6 +10,8 @@ find_package(catkin REQUIRED COMPONENTS
   cv_bridge
   baxter_core_msgs
   move_to_coord
+  pcl_conversions
+  pcl_ros
   message_generation
 )
 
@@ -61,6 +63,8 @@ find_package( OpenCV REQUIRED )
    Pickup.srv
    RepositionHand.srv
    isComplete.srv
+   Ping.srv
+   BowlValues.srv
 #   Service2.srv
  )
 
@@ -88,10 +92,10 @@ find_package( OpenCV REQUIRED )
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-  INCLUDE_DIRS include
-  LIBRARIES operation_plushie_node
-  CATKIN_DEPENDS roscpp sensor_msgs cv_bridge baxter_core_msgs
-  DEPENDS system_lib
+#  INCLUDE_DIRS include
+#  LIBRARIES operation_plushie_node
+#  CATKIN_DEPENDS roscpp sensor_msgs cv_bridge baxter_core_msgs
+#  DEPENDS system_lib
 )
 
 ###########
@@ -116,6 +120,7 @@ include_directories(
  add_executable(delivery_node src/delivery_node.cpp)
  add_executable(pickup_node src/pickup_node.cpp)
  add_executable(reposition_hand_node src/reposition_hand_node.cpp)
+ add_executable(find_bowl_node src/find_bowl_node.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
@@ -131,6 +136,9 @@ include_directories(
 
  add_dependencies(reposition_hand_node ${catkin_EXPORTED_TARGETS})
  add_dependencies(reposition_hand_node RepositionHand.cpp)
+ 
+ add_dependencies(reposition_hand_node ${catkin_EXPORTED_TARGETS})
+ add_dependencies(find_bowl_node FindBowl.cpp)
 
 ## Specify libraries to link a library or executable target against
  target_link_libraries(operation_plushie_node
@@ -142,10 +150,15 @@ include_directories(
  )
 
  target_link_libraries(pickup_node
+    ${OpenCV_LIBRARIES}
     ${catkin_LIBRARIES}
  )
 
  target_link_libraries(reposition_hand_node
+    ${catkin_LIBRARIES}
+ )
+
+ target_link_libraries(find_bowl_node
     ${catkin_LIBRARIES}
  )
 

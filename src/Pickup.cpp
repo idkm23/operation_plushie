@@ -3,6 +3,8 @@
 #include "operation_plushie/Pickup.h"
 #include "operation_plushie/RepositionHand.h"
 #include "operation_plushie/isComplete.h"
+#include "operation_plushie/Ping.h"
+#include "operation_plushie/BowlValues.h"
 
 //inverse kinematics
 #include <baxter_core_msgs/SolvePositionIK.h>
@@ -36,15 +38,15 @@ class Pickup
 private:
     ros::NodeHandle n;
     ros::ServiceServer pickup_service, isComplete_service;
-    ros::ServiceClient reposition_hand_client, reposition_progress_client;
+    ros::ServiceClient reposition_hand_client, reposition_progress_client, bowl_client, bowl_values_client;
     ros::Publisher arm_pub, xdisplay_pub, gripper_pub;
     ros::Subscriber raw_image, endstate_sub, ir_sensor_sub, is_holding_sub, ok_button_sub;
-    bool isCentered, isMoving, isLeft, isHolding, isPressed, missedLast;
+    bool isCentered, isLeft, isHolding, isPressed, missedLast;
     double x, y, z;
     double ir_sensor;
     double lowering_x, lowering_y;
     Stage stage;
-    int yaw_index;
+    int yaw_index, no_sign_of_plushies;
 
     static const int iLowH, iHighH, iLowS, iHighS, iLowV, iHighV;
     static const double yawDictionary[];
@@ -75,6 +77,7 @@ public:
     void moveArm(int, int);
     bool stepDown(double, double);
     bool sleepUntilDone();
+    void moveAboveBowl();
 };
 
 const double Pickup::yawDictionary[] = {0, 3.14 / 4, 3.14 / 2, 3 * 3.14 / 4};
@@ -98,7 +101,6 @@ Pickup::Pickup()
 void Pickup::begin_detection()
 {
     stage = FINISHED;
-    isMoving = false;
     ros::spin();
 }
 
@@ -129,6 +131,7 @@ bool Pickup::grabPlushie(operation_plushie::Pickup::Request &req, operation_plus
         std::string("/robot/digital_io/") + (isLeft ? "left" : "right") + "_itb_button0/state", 10, &Pickup::updateOKButtonState, this);
     
     yaw_index = -1;
+    no_sign_of_plushies = 0;
     stage = INITIALIZING;
         
     return true;
@@ -218,15 +221,62 @@ void Pickup::getHandImage(const sensor_msgs::ImageConstPtr& msg)
         //move arm towards center of proper color    
         moveArm(posX - imgThresholded.cols/2 - XTRANS, posY - imgThresholded.rows/2 - YTRANS);
     }
+    else
+    {
+        if(++no_sign_of_plushies > 150)
+        {
+            moveAboveBowl();
+        }
+    }
+}
+
+void Pickup::moveAboveBowl() 
+{
+    operation_plushie::BowlValues srv_values;
+    operation_plushie::Ping srv_ping;
+    
+    if(!bowl_client.call(srv_ping))
+    {
+        ROS_ERROR("Cannot contact bowl_service");           
+    }
+    
+    int timeout = 0;
+    do {
+
+        if(!bowl_values_client.call(srv_values))
+        {
+            ROS_ERROR("Cannot contact bowl_values_service");
+        } 
+
+        timeout++;
+    } while(srv_values.response.x == -1337 && timeout < 2500);
+
+    if(timeout > 2500) 
+    {
+        ROS_INFO("Bowl_values_service timed out");    
+        return;
+    }
+    
+    operation_plushie::RepositionHand srv;
+
+    srv.request.x = srv_values.response.x; 
+    srv.request.y = srv_values.response.y;
+ 
+    //keeps z the same
+    srv.request.z = z;
+    srv.request.isLeft = isLeft;
+    
+    if(!reposition_hand_client.call(srv))
+    {
+        ROS_ERROR("Failed to call reposition_hand_service");
+        return;
+    } 
+
+    sleepUntilDone();
 }
 
 void Pickup::moveArm(int y_shift, int x_shift)
 {
-    if(isMoving)
-        return;
-    
-    isMoving = true;    
-    
     const int CENT_VAL = 10;   
 
     if(abs(x_shift) < CENT_VAL && abs(y_shift) < CENT_VAL)
@@ -235,7 +285,6 @@ void Pickup::moveArm(int y_shift, int x_shift)
         stage = LOWERING;
         lowering_x = x;
         lowering_y = y;
-        isMoving = false;
         
         if(missedLast)
         {
@@ -272,13 +321,10 @@ void Pickup::moveArm(int y_shift, int x_shift)
     if(!reposition_hand_client.call(srv))
     {
         ROS_ERROR("Failed to call reposition_hand_service");
-        isMoving = false;
         return;
     } 
 
     sleepUntilDone();
-
-    isMoving = false;
 }
 
 bool Pickup::stepDown(double __x, double __y)
@@ -341,7 +387,6 @@ void Pickup::fetchNRaise()
     if(!reposition_hand_client.call(srv))
     {
         ROS_ERROR("Failed to call reposition_hand_service");
-        isMoving = false;
         return;
     }
    
@@ -357,7 +402,6 @@ void Pickup::setupHand()
     if(isHolding)
     {
         ROS_INFO("Holding something!");
-
         if(!isPressed)
             return;
     }
