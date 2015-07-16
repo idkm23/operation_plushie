@@ -13,7 +13,9 @@ ordietrying()
 
 # start a few things backgrounded and concat their PIDs
 PIDS=""
-for x in "roslaunch operation_plushie kinect_tfs.launch $@"; do
+for x in "roslaunch openni_launch openni.launch $@" \
+"roslaunch operation_plushie kinect_tfs.launch $@" 
+do
   PIDS="$PIDS `spawn $x`"
 done
 
