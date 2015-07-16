@@ -43,8 +43,7 @@ private:
     sensor_msgs::ImagePtr happy_face, unsure_face, lemon_face;
 
     Stage state;
-    int no_face_count;
-    bool skipNextFrame;
+    int no_face_count, skippedFrames;
     std::vector<ConsistentRect> consistent_rects;
 
 public:
