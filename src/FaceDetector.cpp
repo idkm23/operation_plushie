@@ -40,9 +40,9 @@ void FaceDetector::updateHead(const baxter_core_msgs::HeadState::ConstPtr& msg) 
 
 void FaceDetector::call_back(const sensor_msgs::ImageConstPtr& msg)
 {
-    if(skipNextFrame)
+    if(skippedFrames != 0)
     {
-        skipNextFrame = false;
+        skippedFrames--;
         return;
     }
 
@@ -262,7 +262,7 @@ void FaceDetector::chooseStage()
         break;
     }
 
-    skipNextFrame = true;
+    consistent_rects.clear();
     no_face_count = 0;
 } 
 
