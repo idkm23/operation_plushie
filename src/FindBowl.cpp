@@ -52,7 +52,6 @@ FindBowl::FindBowl()
 {
     bowl_service = nh.advertiseService("bowl_service", &FindBowl::bowl_cb, this); 
     bowl_values_service = nh.advertiseService("bowl_values_service", &FindBowl::bowl_values_cb, this); 
-    depth_sub = nh.subscribe ("/camera/depth_registered/points", 1, &FindBowl::cloud_cb, this);
     output_pub = nh.advertise<sensor_msgs::PointCloud2>("output", 1000);
 }
 
@@ -66,7 +65,8 @@ bool
 FindBowl::bowl_cb(operation_plushie::Ping::Request &req, operation_plushie::Ping::Response &res)
 {
     stage = SEARCH;
-
+    depth_sub = nh.subscribe ("/camera/depth_registered/points", 1, &FindBowl::cloud_cb, this);
+    
     b_x = -1337;
     b_y = -1337;
 
@@ -77,7 +77,10 @@ void
 FindBowl::cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 {
     if(stage == FINISHED)
+    {
+        depth_sub = nh.subscribe("this_is_not_a_topic", 1, &FindBowl::cloud_cb, this);
         return;
+    }
 
     // All the objects needed
     pcl::PassThrough<PointT> pass;
