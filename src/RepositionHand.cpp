@@ -20,7 +20,7 @@ private:
     ros::Subscriber endstate_sub[2], torque_sub;
     baxter_core_msgs::EndpointState eps;
     double s1_torque, s1_torque_original;
-    bool isLeft, isMoving, isStuck;
+    bool isLeft, isMoving, isStuck, needsConsistency;
 
     //position to go to
     geometry_msgs::PoseStamped ps;
@@ -70,6 +70,7 @@ RepositionHand::RepositionHand()
 bool RepositionHand::callback(operation_plushie::RepositionHand::Request &req, operation_plushie::RepositionHand::Response &res)
 {
     isLeft = req.isLeft;
+    needsConsistency = req.needsConsistency;
 
     ik_solver = n.serviceClient<baxter_core_msgs::SolvePositionIK>(
         std::string("/ExternalTools/") + (isLeft?"left":"right") + "/PositionKinematicsNode/IKService");
@@ -181,7 +182,7 @@ void RepositionHand::updateEndpoint(baxter_core_msgs::EndpointState eps)
         
         joint_pub[(isLeft ? LEFT : RIGHT)].publish(msg);        
         
-        if(consistent_torque_count > 15 && c_pose_count > 15 && ps.pose.position.z < eps.pose.position.z)
+        if(needsConsistency && consistent_torque_count > 15 && c_pose_count > 15 && ps.pose.position.z < eps.pose.position.z)
         {
             ROS_INFO("final torque: %f", s1_torque);
             isMoving = false;

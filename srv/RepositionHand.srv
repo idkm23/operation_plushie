@@ -4,4 +4,5 @@ float64 y
 float64 z
 float64 yaw
 string frame
+bool needsConsistency
 ---
