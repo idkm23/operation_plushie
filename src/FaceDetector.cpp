@@ -5,7 +5,7 @@ FaceDetector::FaceDetector()
     xdisplay_pub = n.advertise<sensor_msgs::Image>("/robot/xdisplay", 1000),
     monitor_pub = n.advertise<baxter_core_msgs::HeadPanCommand>("robot/head/command_head_pan", 1000),
     monitor_sub = n.subscribe<baxter_core_msgs::HeadState>("robot/head/head_state", 10, &FaceDetector::updateHead, this),
-    raw_image = n.subscribe<sensor_msgs::Image>(/*"camera/rgb/image_raw"*/"/cameras/head_camera/image", 1, &FaceDetector::call_back, this), 
+    raw_image = n.subscribe<sensor_msgs::Image>(/*"camera/rgb/image_raw"*/"/republished/head_camera/image", 1, &FaceDetector::call_back, this), 
     
     pickup_client = n.serviceClient<operation_plushie::Pickup>("pickup_service");
     pickup_isComplete_client = n.serviceClient<operation_plushie::isComplete>("pickup_isComplete_service");  

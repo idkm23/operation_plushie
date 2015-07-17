@@ -238,6 +238,7 @@ void Pickup::getHandImage(const sensor_msgs::ImageConstPtr& msg)
 
 void Pickup::moveAboveBowl() 
 {
+    ROS_INFO("Moving above bowl");
     moveOutOfDepthCloud();
 
     operation_plushie::BowlValues srv_values;
@@ -274,6 +275,8 @@ void Pickup::moveAboveBowl()
     srv.request.isLeft = isLeft;
     srv.request.frame = "base";
     
+    ROS_INFO("Pickup x: %f, y: %f", x, y);
+
     if(!reposition_hand_client.call(srv))
     {
         ROS_ERROR("Failed to call reposition_hand_service");
@@ -365,6 +368,7 @@ bool Pickup::stepDown(double __x, double __y)
     srv.request.yaw = yawDictionary[yaw_index];
     srv.request.isLeft = isLeft;
     srv.request.frame = "base";   
+    srv.request.needsConsistency = true;
  
     if(!reposition_hand_client.call(srv))
     {

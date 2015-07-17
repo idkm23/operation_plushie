@@ -9,10 +9,10 @@
     <node name="operation_plushie_node" pkg="operation_plushie" type="operation_plushie_node" required="true" cwd="node" output="screen" />
 
   <!-- kinect driver and transform publisher -->
-<!--    <node name="kinect_spawner" pkg="operation_plushie" type="kinect_stuff" output="screen" machine="leviathan" /> -->
+    <!--<node name="kinect_spawner" pkg="operation_plushie" type="kinect_stuff" output="screen" />-->
 
-  <!-- local publishers of republished theora-transported images from kinect pc - throughput optimization 2/2 
+  <!-- local publishers of republished theora-transported images from kinect pc - throughput optimization 2/2 -->
     <node name="local_head_compressed_to_raw" type="republish" pkg="image_transport" output="screen" args="theora in:=/cameras/republished/head_camera raw out:=/republished/head_camera/image" />
-    <node name="local_left_hand_compressed_to_raw" type="republish" pkg="image_transport" output="screen" args="theora in:=/cameras/republished/head_camera raw out:=/republished/head_camera/image" />-->
+    <node name="local_left_hand_compressed_to_raw" type="republish" pkg="image_transport" output="screen" args="theora in:=/cameras/republished/left_hand_camera raw out:=/republished/left_hand_camera/image" />
 
 </launch>

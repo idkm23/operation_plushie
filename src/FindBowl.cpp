@@ -168,7 +168,7 @@ FindBowl::cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 
     geometry_msgs::PointStamped pt, pt_transformed;
 
-    pt.header.stamp = ros::Time::now();
+    pt.header.stamp = ros::Time(0);
     pt.header.frame_id = "camera_rgb_optical_frame";
 
     pt.point.x = cylinder_centroid.x;
