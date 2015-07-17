@@ -25,6 +25,7 @@ FaceDetector::FaceDetector()
     happy_face = cv_bridge::CvImage(std_msgs::Header(), "bgr8", happy_mat).toImageMsg();
     unsure_face = cv_bridge::CvImage(std_msgs::Header(), "bgr8", unsure_mat).toImageMsg();
     
+    isFirst = true;
     no_face_count = 20;
     state = PICKUP;
 }
@@ -265,6 +266,9 @@ void FaceDetector::pickup()
     //TODO: fix this assumption (always left) 
     operation_plushie::Pickup srv;
     srv.request.isLeft = true;
+    srv.request.isFirst = isFirst;
+    isFirst = false;
+
     //sets stage in pickup to initializing
     pickup_client.call(srv);
     

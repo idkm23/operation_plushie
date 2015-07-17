@@ -53,6 +53,7 @@ FindBowl::FindBowl()
     bowl_service = nh.advertiseService("bowl_service", &FindBowl::bowl_cb, this); 
     bowl_values_service = nh.advertiseService("bowl_values_service", &FindBowl::bowl_values_cb, this); 
     output_pub = nh.advertise<sensor_msgs::PointCloud2>("output", 1000);
+    stage = FINISHED;
 }
 
 void

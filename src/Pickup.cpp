@@ -134,7 +134,7 @@ bool Pickup::grabPlushie(operation_plushie::Pickup::Request &req, operation_plus
     
     yaw_index = -1;
     no_sign_of_plushies = 0;
-    stage = TOBOWL;
+    stage = (req.isFirst?TOBOWL:INITIALIZING);
         
     return true;
 }   
@@ -229,7 +229,7 @@ void Pickup::getHandImage(const sensor_msgs::ImageConstPtr& msg)
     }
     else
     {
-        if(++no_sign_of_plushies > 150)
+        if(++no_sign_of_plushies > 40)
         {
             moveAboveBowl();
         }
