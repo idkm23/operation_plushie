@@ -135,6 +135,8 @@ bool Pickup::grabPlushie(operation_plushie::Pickup::Request &req, operation_plus
     yaw_index = -1;
     no_sign_of_plushies = 0;
     stage = (req.isFirst?TOBOWL:INITIALIZING);
+
+    ROS_INFO("isFirst %d", req.isFirst);
         
     return true;
 }   
