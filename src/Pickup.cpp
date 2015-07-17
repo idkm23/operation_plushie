@@ -31,7 +31,7 @@
 //for button
 #include "baxter_core_msgs/DigitalIOState.h"
 
-enum Stage {INITIALIZING, CENTERING, LOWERING, RETURNING, FINISHED};
+enum Stage {TOBOWL, INITIALIZING, CENTERING, LOWERING, RETURNING, FINISHED};
 
 class Pickup 
 {
@@ -71,13 +71,14 @@ public:
     void getHandImage(const sensor_msgs::ImageConstPtr&);
     void lowerArm();
     void fetchNRaise();
+    void moveAboveBowl();
     
     //worker functions the stages use
     void setupHand();
     void moveArm(int, int);
     bool stepDown(double, double);
     bool sleepUntilDone();
-    void moveAboveBowl();
+    void moveOutOfDepthCloud();
 };
 
 const double Pickup::yawDictionary[] = {0, 3.14 / 4, 3.14 / 2, 3 * 3.14 / 4};
@@ -133,7 +134,9 @@ bool Pickup::grabPlushie(operation_plushie::Pickup::Request &req, operation_plus
     
     yaw_index = -1;
     no_sign_of_plushies = 0;
-    stage = INITIALIZING;
+    stage = (req.isFirst?TOBOWL:INITIALIZING);
+
+    ROS_INFO("isFirst %d", req.isFirst);
         
     return true;
 }   
@@ -142,6 +145,9 @@ void Pickup::chooseStage(const sensor_msgs::ImageConstPtr& msg)
 {
     switch(stage)
     {
+    case TOBOWL:
+        moveAboveBowl();
+        break;
     case INITIALIZING:
         setupHand();
         break;
@@ -225,7 +231,7 @@ void Pickup::getHandImage(const sensor_msgs::ImageConstPtr& msg)
     }
     else
     {
-        if(++no_sign_of_plushies > 150)
+        if(++no_sign_of_plushies > 40)
         {
             moveAboveBowl();
         }
@@ -234,6 +240,9 @@ void Pickup::getHandImage(const sensor_msgs::ImageConstPtr& msg)
 
 void Pickup::moveAboveBowl() 
 {
+    ROS_INFO("Moving above bowl");
+    moveOutOfDepthCloud();
+
     operation_plushie::BowlValues srv_values;
     operation_plushie::Ping srv_ping;
     
@@ -264,9 +273,31 @@ void Pickup::moveAboveBowl()
     srv.request.x = srv_values.response.x; 
     srv.request.y = srv_values.response.y;
     
-    srv.request.z = .63;
+    srv.request.z = .15;
     srv.request.isLeft = isLeft;
-    srv.request.frame = "camera_rgb_optical_frame";
+    srv.request.frame = "base";
+    
+    ROS_INFO("Pickup x: %f, y: %f", x, y);
+
+    if(!reposition_hand_client.call(srv))
+    {
+        ROS_ERROR("Failed to call reposition_hand_service");
+        return;
+    } 
+
+    sleepUntilDone();
+
+    stage = INITIALIZING;
+}
+
+void Pickup::moveOutOfDepthCloud()
+{
+    operation_plushie::RepositionHand srv;
+    srv.request.x = (isLeft?1:-1)*.22;
+    srv.request.y = .74;
+    srv.request.z = .24;
+    srv.request.isLeft = isLeft;
+    srv.request.frame = "base";
     
     if(!reposition_hand_client.call(srv))
     {
@@ -339,6 +370,7 @@ bool Pickup::stepDown(double __x, double __y)
     srv.request.yaw = yawDictionary[yaw_index];
     srv.request.isLeft = isLeft;
     srv.request.frame = "base";   
+    srv.request.needsConsistency = true;
  
     if(!reposition_hand_client.call(srv))
     {

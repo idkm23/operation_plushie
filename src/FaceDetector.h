@@ -46,6 +46,8 @@ private:
     int no_face_count;
     std::vector<ConsistentRect> consistent_rects;
 
+    bool isFirst;
+
 public:
     FaceDetector();
     void begin_detection();

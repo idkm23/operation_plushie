@@ -18,6 +18,9 @@
 #include <operation_plushie/Ping.h>
 #include <operation_plushie/BowlValues.h>
 
+#include <geometry_msgs/PointStamped.h>
+#include <tf/transform_listener.h>
+
 //cloud > cloud filter > cloud cluster > cylinder
 
 typedef pcl::PointXYZ PointT;
@@ -29,7 +32,9 @@ class FindBowl
 private:
     ros::NodeHandle nh;
     ros::ServiceServer bowl_service, bowl_values_service;
+    ros::Publisher output_pub;
     ros::Subscriber depth_sub;
+    tf::TransformListener listener;
     Status stage;
     double b_x, b_y;
 
@@ -39,13 +44,16 @@ public:
     bool bowl_cb(operation_plushie::Ping::Request&, operation_plushie::Ping::Response&);
     bool bowl_values_cb(operation_plushie::BowlValues::Request&, operation_plushie::BowlValues::Response&);
     void cloud_cb(const sensor_msgs::PointCloud2ConstPtr& input);
+   
+    static PointT calcCentroid(pcl::PointCloud<PointT>::Ptr);
 };
 
 FindBowl::FindBowl()
 {
     bowl_service = nh.advertiseService("bowl_service", &FindBowl::bowl_cb, this); 
     bowl_values_service = nh.advertiseService("bowl_values_service", &FindBowl::bowl_values_cb, this); 
-    depth_sub = nh.subscribe ("/camera/depth_registered/points", 1, &FindBowl::cloud_cb, this);
+    output_pub = nh.advertise<sensor_msgs::PointCloud2>("output", 1000);
+    stage = FINISHED;
 }
 
 void
@@ -58,7 +66,8 @@ bool
 FindBowl::bowl_cb(operation_plushie::Ping::Request &req, operation_plushie::Ping::Response &res)
 {
     stage = SEARCH;
-
+    depth_sub = nh.subscribe ("/camera/depth_registered/points", 1, &FindBowl::cloud_cb, this);
+    
     b_x = -1337;
     b_y = -1337;
 
@@ -69,7 +78,10 @@ void
 FindBowl::cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 {
     if(stage == FINISHED)
+    {
+        depth_sub = nh.subscribe("this_is_not_a_topic", 1, &FindBowl::cloud_cb, this);
         return;
+    }
 
     // All the objects needed
     pcl::PassThrough<PointT> pass;
@@ -156,24 +168,67 @@ FindBowl::cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
     if (cloud_cylinder->points.empty ()) 
         return;
 
-    b_x = cloud_cylinder->points[0].x;
-    b_y = cloud_cylinder->points[0].y;
+    PointT cylinder_centroid = calcCentroid(cloud_cylinder);
+
+    geometry_msgs::PointStamped pt, pt_transformed;
+
+    pt.header.stamp = ros::Time(0);
+    pt.header.frame_id = "camera_rgb_optical_frame";
+
+    pt.point.x = cylinder_centroid.x;
+    pt.point.y = cylinder_centroid.y;
+    pt.point.z = cylinder_centroid.z; 
+
+    listener.transformPoint("base", pt, pt_transformed);
+
+    b_x = pt_transformed.point.x;
+    b_y = pt_transformed.point.y;
    
     ROS_INFO("Finished x: %f, y: %f", b_x, b_y);
  
     stage = FINISHED;
-
-/*   Uncomment to enable filtered PC publishing
-    pcl::fromROSMsg(*input, *cloud);
-
+/*
+  // Uncomment to enable filtered PC publishing
+    pcl::PointCloud<PointT>::Ptr centroid_line(new pcl::PointCloud<PointT>());
+    
+    centroid_line->width = 15;
+    centroid_line->height = 1;
+    centroid_line->points.resize(centroid_line->width * centroid_line->height);
+        
+    for(int i = 0; i < centroid_line->points.size(); i++)
+    {
+        centroid_line->points[i].x = b_x;
+        centroid_line->points[i].y = b_y;
+        centroid_line->points[i].z = pt_transformed.point.z + .01 * i;
+    }
+    
     // Create a container for the data.
     sensor_msgs::PointCloud2 output;
 
-    pcl::toROSMsg(*cloud_cylinder, output);
+    pcl::toROSMsg(*centroid_line, output);
 
     output.header.stamp = ros::Time::now();
-    output.header.frame_id = "camera_rgb_optical_frame";
-*/
+    output.header.frame_id = "base";
+
+    while(ros::ok) {
+        output_pub.publish(output);
+        ros::spinOnce();
+    }*/
+}
+
+PointT FindBowl::calcCentroid(pcl::PointCloud<PointT>::Ptr cloud) {
+    size_t size = cloud->points.size();
+    double x = 0, y = 0, z = 0;
+    
+    //for(std::vector<PointT>::const_iterator it = cloud->points.begin(); it != cloud->points.end(); ++it)
+    for(size_t i = 0; i < size; i++)    
+    {
+        x += cloud->points[i].x;
+        y += cloud->points[i].y;
+        z += cloud->points[i].z;
+    }
+    
+    return PointT(x / size, y / size, z / size);
 }
 
 bool FindBowl::bowl_values_cb(operation_plushie::BowlValues::Request &req, operation_plushie::BowlValues::Response &res) 
