@@ -287,7 +287,7 @@ void Pickup::moveAboveBowl()
             return;
         } 
 
-    } while(!sleepUntilDone());
+    } while(sleepUntilDone());
 
     stage = INITIALIZING;
 }

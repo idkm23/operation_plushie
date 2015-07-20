@@ -115,6 +115,7 @@ bool RepositionHand::callback(operation_plushie::RepositionHand::Request &req, o
     if(!ik_solver.call(srv))
     {
         ROS_ERROR("Failed to call service IKSolver");
+        isStuck = true;
         return false;
     }
 
