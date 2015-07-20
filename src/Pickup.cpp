@@ -240,7 +240,10 @@ void Pickup::getHandImage(const sensor_msgs::ImageConstPtr& msg)
 
 void Pickup::moveAboveBowl() 
 {
-    ROS_INFO("Moving above bowl");
+    if(isHolding) {
+        stage = FINISHED;
+        return;
+    }
     moveOutOfDepthCloud();
 
     operation_plushie::BowlValues srv_values;

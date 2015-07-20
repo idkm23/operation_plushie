@@ -5,7 +5,7 @@ FaceDetector::FaceDetector()
     xdisplay_pub = n.advertise<sensor_msgs::Image>("/robot/xdisplay", 1000),
     monitor_pub = n.advertise<baxter_core_msgs::HeadPanCommand>("robot/head/command_head_pan", 1000),
     monitor_sub = n.subscribe<baxter_core_msgs::HeadState>("robot/head/head_state", 10, &FaceDetector::updateHead, this),
-    raw_image = n.subscribe<sensor_msgs::Image>(/*"camera/rgb/image_raw"*/"/republished/head_camera/image", 1, &FaceDetector::call_back, this), 
+    raw_image = n.subscribe<sensor_msgs::Image>(/*"camera/rgb/image_raw"*/"/republished/head_camera/image", 1, &FaceDetector::chooseStage, this), 
     
     pickup_client = n.serviceClient<operation_plushie::Pickup>("pickup_service");
     pickup_isComplete_client = n.serviceClient<operation_plushie::isComplete>("pickup_isComplete_service");  
@@ -39,13 +39,8 @@ void FaceDetector::updateHead(const baxter_core_msgs::HeadState::ConstPtr& msg) 
 	head_state = *msg;
 }
 
-void FaceDetector::call_back(const sensor_msgs::ImageConstPtr& msg)
+void FaceDetector::head_camera_processing(const sensor_msgs::ImageConstPtr& msg)
 {
-    if(isFirst) {
-        pickup();
-        return;
-    }
-        
     cv_bridge::CvImagePtr cv_ptr_cam;
     try 
     {   
@@ -59,7 +54,6 @@ void FaceDetector::call_back(const sensor_msgs::ImageConstPtr& msg)
 
     detectAndDisplay(cv_ptr_cam->image);   
 }
-
 void FaceDetector::detectAndDisplay(cv::Mat frame)
 {
     std::vector<cv::Rect> raw_faces;
@@ -157,6 +151,7 @@ bool FaceDetector::isOverlapping(cv::Rect r1, cv::Rect r2)
     int overlap_height = std::min(r1.y, r2.y) > std::max(r1.y - r1.height, r2.y - r2.height) ? 1 : 0;
     return (overlap_width == 1 && overlap_height == 1);
 }
+
 void FaceDetector::decrementConsistentRects() {
     for(int i = 0; i < consistent_rects.size(); i++)
     {
@@ -203,8 +198,7 @@ void FaceDetector::tickFaceCount(int best_index, int confirmed_size, cv::Mat fra
             if(fromCenter < 50 && fromCenter > -50) 
             {
                 no_face_count = -FACE_COUNT;
-                
-                chooseStage();
+                deliver();    
             } 
             else
             {
@@ -250,7 +244,7 @@ std::vector<cv::Rect> FaceDetector::findConfirmedFaces(std::vector<cv::Rect> raw
     return confirmed_faces;
 }
 
-void FaceDetector::chooseStage()
+void FaceDetector::chooseStage(const sensor_msgs::ImageConstPtr& msg)
 {
     switch(state)
     {
@@ -258,12 +252,10 @@ void FaceDetector::chooseStage()
         pickup();
         break;
     case DELIVER:
-        deliver();
+        head_camera_processing(msg);
         break;
     }
 
-    consistent_rects.clear();
-    no_face_count = 0;
 } 
 
 void FaceDetector::pickup()
@@ -288,6 +280,7 @@ void FaceDetector::pickup()
 
 void FaceDetector::deliver()
 {
+    ROS_INFO("pleasedeliver");
     operation_plushie::Deliver srv;
     srv.request.headPos = head_state.pan;
     
@@ -299,5 +292,7 @@ void FaceDetector::deliver()
         delivery_isComplete_client.call(delivery_progress);
     } while(!delivery_progress.response.isComplete);
     
+    consistent_rects.clear();
+    no_face_count = 0;
     state = PICKUP;
 }

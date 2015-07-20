@@ -98,7 +98,7 @@ bool RepositionHand::callback(operation_plushie::RepositionHand::Request &req, o
     ps.header.frame_id = req.frame; 
     ps.header.stamp = ros::Time::now();
 
-    ps.pose.position.x = (req.x > 1 ? 1 : req.x);
+    ps.pose.position.x = (req.x > .84 ? .84 : req.x);
     ps.pose.position.y = req.y;
     ps.pose.position.z = req.z;
 
