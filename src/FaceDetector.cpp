@@ -41,6 +41,11 @@ void FaceDetector::updateHead(const baxter_core_msgs::HeadState::ConstPtr& msg) 
 
 void FaceDetector::call_back(const sensor_msgs::ImageConstPtr& msg)
 {
+    if(isFirst) {
+        pickup();
+        return;
+    }
+        
     cv_bridge::CvImagePtr cv_ptr_cam;
     try 
     {   
