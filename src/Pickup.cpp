@@ -5,6 +5,7 @@
 #include "operation_plushie/isComplete.h"
 #include "operation_plushie/Ping.h"
 #include "operation_plushie/BowlValues.h"
+#include "operation_plushie/PositionJoints.h"
 
 //inverse kinematics
 #include <baxter_core_msgs/SolvePositionIK.h>
@@ -38,7 +39,7 @@ class Pickup
 private:
     ros::NodeHandle n;
     ros::ServiceServer pickup_service, isComplete_service;
-    ros::ServiceClient reposition_hand_client, reposition_progress_client, bowl_client, bowl_values_client;
+    ros::ServiceClient reposition_hand_client, reposition_progress_client, bowl_client, bowl_values_client, position_joints_client, position_joints_progress;
     ros::Publisher arm_pub, xdisplay_pub, gripper_pub;
     ros::Subscriber raw_image, endstate_sub, ir_sensor_sub, is_holding_sub, ok_button_sub;
     bool isCentered, isLeft, isHolding, isPressed, missedLast;
@@ -95,6 +96,8 @@ Pickup::Pickup()
     reposition_progress_client = n.serviceClient<operation_plushie::isComplete>("reposition_progress_service");
     bowl_client = n.serviceClient<operation_plushie::Ping>("bowl_service");
     bowl_values_client = n.serviceClient<operation_plushie::BowlValues>("bowl_values_service");
+    position_joints_progress = n.serviceClient<operation_plushie::isComplete>("position_joints_progress");
+    position_joints_client = n.serviceClient<operation_plushie::PositionJoints>("position_joints_service");
  
     x = 0.6;
     y = 0.5;
@@ -135,8 +138,6 @@ bool Pickup::grabPlushie(operation_plushie::Pickup::Request &req, operation_plus
     yaw_index = -1;
     no_sign_of_plushies = 0;
     stage = (req.isFirst?TOBOWL:INITIALIZING);
-
-    ROS_INFO("isFirst %d", req.isFirst);
         
     return true;
 }   
@@ -295,22 +296,42 @@ void Pickup::moveAboveBowl()
     stage = INITIALIZING;
 }
 
+//TODO: make this functional for both arms
 void Pickup::moveOutOfDepthCloud()
 {
-    operation_plushie::RepositionHand srv;
-    srv.request.x = (isLeft?1:-1)*.22;
-    srv.request.y = .74;
-    srv.request.z = .24;
-    srv.request.isLeft = isLeft;
-    srv.request.frame = "base";
-    
-    if(!reposition_hand_client.call(srv))
-    {
-        ROS_ERROR("Failed to call reposition_hand_service");
-        return;
-    } 
+    operation_plushie::PositionJoints srv;
 
-    sleepUntilDone();
+    srv.request.names.push_back("left_e0"); 
+    srv.request.names.push_back("left_e1");
+    srv.request.names.push_back("left_s0");
+    srv.request.names.push_back("left_s1");
+    srv.request.names.push_back("left_w0");
+    srv.request.names.push_back("left_w1");
+    srv.request.names.push_back("left_w2");
+
+    srv.request.command.push_back(0.141);
+    srv.request.command.push_back(1.998);
+    srv.request.command.push_back(0.361);
+    srv.request.command.push_back(-1.366);
+    srv.request.command.push_back(0);
+    srv.request.command.push_back(0.938);
+    srv.request.command.push_back(1.308);
+
+    if (!position_joints_client.call(srv))
+    {
+        ROS_ERROR("Failed to call position_joints_service");
+        return;
+    }
+
+    operation_plushie::isComplete srv_progress;
+
+    do {
+        if(!position_joints_progress.call(srv_progress))
+        {
+            ROS_ERROR("Failed to call position_joints_progress");
+            return;
+        }
+    } while(!srv_progress.response.isComplete);
 }
 
 void Pickup::moveArm(int y_shift, int x_shift)

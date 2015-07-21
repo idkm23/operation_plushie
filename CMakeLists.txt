@@ -65,6 +65,7 @@ find_package( OpenCV REQUIRED )
    isComplete.srv
    Ping.srv
    BowlValues.srv
+   PositionJoints.srv
 #   Service2.srv
  )
 
@@ -121,6 +122,7 @@ include_directories(
  add_executable(pickup_node src/pickup_node.cpp)
  add_executable(reposition_hand_node src/reposition_hand_node.cpp)
  add_executable(find_bowl_node src/find_bowl_node.cpp)
+ add_executable(position_joints_node src/position_joints_node.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
@@ -145,6 +147,10 @@ include_directories(
  add_dependencies(find_bowl_node FindBowl.cpp)
  add_dependencies(find_bowl_node operation_plushie_generate_messages_cpp)
 
+ add_dependencies(position_joints_node ${catkin_EXPORTED_TARGETS})
+ add_dependencies(position_joints_node PositionJoints.cpp)
+ add_dependencies(position_joints_node operation_plushie_generate_messages_cpp)
+
 ## Specify libraries to link a library or executable target against
  target_link_libraries(operation_plushie_node
     ${catkin_LIBRARIES} ${OpenCV_LIBRARIES}
@@ -163,10 +169,13 @@ include_directories(
     ${catkin_LIBRARIES}
  )
 
- target_link_libraries(find_bowl_node
+target_link_libraries(find_bowl_node
     ${catkin_LIBRARIES}
  )
 
+target_link_libraries(position_joints_node
+    ${catkin_LIBRARIES}
+ )
 
 #############
 ## Install ##
