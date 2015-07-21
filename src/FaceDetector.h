@@ -51,7 +51,7 @@ private:
 public:
     FaceDetector();
     void begin_detection();
-    void call_back(const sensor_msgs::ImageConstPtr&);
+    void head_camera_processing(const sensor_msgs::ImageConstPtr&);
     void detectAndDisplay(cv::Mat); 
     void updateHead(const baxter_core_msgs::HeadState::ConstPtr&);
     bool properColor(cv::Mat);
@@ -62,7 +62,7 @@ public:
     void tickFaceCount(int, int, cv::Mat);
     std::vector<cv::Rect> findConfirmedFaces(std::vector<cv::Rect>, cv::Mat);
 
-    void chooseStage();
+    void chooseStage(const sensor_msgs::ImageConstPtr& msg);
     void pickup();
     void deliver();
 };
