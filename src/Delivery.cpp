@@ -26,7 +26,7 @@ private:
     Stage state;
     baxter_core_msgs::JointCommand stretchPose, origPose;
     double e0, e1, s0, s1, w0, w1, w2;
-    bool isRight, isPressed, origStored;
+    bool isRight, isPressed, isHolding, origStored;
 
 public:
     Delivery();
@@ -35,6 +35,8 @@ public:
     void beginDetection();
     bool isCorrectPosition(baxter_core_msgs::JointCommand);
     void updateButtonState(baxter_core_msgs::DigitalIOState);
+    void updateEndEffectorState(baxter_core_msgs::EndEffectorState);
+    
     bool isComplete(operation_plushie::isComplete::Request&, operation_plushie::isComplete::Response&);
 
     void selectState();
@@ -113,6 +115,9 @@ bool Delivery::deliver(operation_plushie::Deliver::Request &req, operation_plush
     button_sub = n.subscribe<baxter_core_msgs::DigitalIOState>(
         std::string("/robot/digital_io/") + (isRight ? "right" : "left") + "_itb_button0/state", 10, &Delivery::updateButtonState, this);
 
+    is_holding_sub = n.subscribe<baxter_core_msgs::EndEffectorState>(
+        std::string("/robot/end_effector/") + (isRight ? "right" : "left") + "_gripper/state", 10, &Delivery::updateEndEffectorState, this);
+
     std::string names[7];   
     
     stretchPose.names.clear();
@@ -157,7 +162,7 @@ bool Delivery::deliver(operation_plushie::Deliver::Request &req, operation_plush
     stretchPose.command.push_back(getArmPos(req.headPos));
     stretchPose.command.push_back(0);
     stretchPose.command.push_back(1.5);
-    stretchPose.command.push_back(-0.1);
+    stretchPose.command.push_back(0.3);
     stretchPose.command.push_back(0);
 
     stretchPose.mode = 1; //Set it in position mode
@@ -205,7 +210,7 @@ void Delivery::stretch()
 
 void Delivery::release()
 {
-    if(isPressed)
+    if(!isHolding || isPressed)
     {
         baxter_core_msgs::EndEffectorCommand hand_command;
         hand_command.id = 65538;
@@ -255,5 +260,10 @@ bool Delivery::isComplete(operation_plushie::isComplete::Request &req, operation
 {
     res.isComplete = (state == FINISHED);
     return true;
+}
+
+void Delivery::updateEndEffectorState(baxter_core_msgs::EndEffectorState ees)
+{
+    isHolding = ees.gripping;
 }
 

@@ -98,7 +98,7 @@ bool RepositionHand::callback(operation_plushie::RepositionHand::Request &req, o
     ps.header.frame_id = req.frame; 
     ps.header.stamp = ros::Time::now();
 
-    ps.pose.position.x = (req.x > 0.8 ? 0.8 : req.x);
+    ps.pose.position.x = (req.x > .84 ? .84 : req.x);
     ps.pose.position.y = req.y;
     ps.pose.position.z = req.z;
 
@@ -115,6 +115,7 @@ bool RepositionHand::callback(operation_plushie::RepositionHand::Request &req, o
     if(!ik_solver.call(srv))
     {
         ROS_ERROR("Failed to call service IKSolver");
+        isStuck = true;
         return false;
     }
 

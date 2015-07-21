@@ -240,52 +240,57 @@ void Pickup::getHandImage(const sensor_msgs::ImageConstPtr& msg)
 
 void Pickup::moveAboveBowl() 
 {
-    ROS_INFO("Moving above bowl");
+    if(isHolding) {
+        stage = FINISHED;
+        return;
+    }
     moveOutOfDepthCloud();
 
     operation_plushie::BowlValues srv_values;
     operation_plushie::Ping srv_ping;
-    
-    if(!bowl_client.call(srv_ping))
-    {
-        ROS_ERROR("Cannot contact bowl_service");           
-    }
-    
-    int timeout = 0;
-    do {
+   
+    do { 
 
-        if(!bowl_values_client.call(srv_values))
+        if(!bowl_client.call(srv_ping))
         {
-            ROS_ERROR("Cannot contact bowl_values_service");
+            ROS_ERROR("Cannot contact bowl_service");           
+        }
+        
+        int timeout = 0;
+        do {
+
+            if(!bowl_values_client.call(srv_values))
+            {
+                ROS_ERROR("Cannot contact bowl_values_service");
+            } 
+        
+            timeout++;
+        } while(srv_values.response.x == -1337 && timeout < 2500);
+
+        if(timeout >= 2500) 
+        {
+            ROS_INFO("Bowl_values_service timed out");    
+            return;
+        }
+        
+        operation_plushie::RepositionHand srv;
+
+        srv.request.x = srv_values.response.x; 
+        srv.request.y = srv_values.response.y;
+        
+        srv.request.z = .15;
+        srv.request.isLeft = isLeft;
+        srv.request.frame = "base";
+        
+        ROS_INFO("Pickup x: %f, y: %f", x, y);
+
+        if(!reposition_hand_client.call(srv))
+        {
+            ROS_ERROR("Failed to call reposition_hand_service");
+            return;
         } 
-    
-        timeout++;
-    } while(srv_values.response.x == -1337 && timeout < 2500);
 
-    if(timeout >= 2500) 
-    {
-        ROS_INFO("Bowl_values_service timed out");    
-        return;
-    }
-    
-    operation_plushie::RepositionHand srv;
-
-    srv.request.x = srv_values.response.x; 
-    srv.request.y = srv_values.response.y;
-    
-    srv.request.z = .15;
-    srv.request.isLeft = isLeft;
-    srv.request.frame = "base";
-    
-    ROS_INFO("Pickup x: %f, y: %f", x, y);
-
-    if(!reposition_hand_client.call(srv))
-    {
-        ROS_ERROR("Failed to call reposition_hand_service");
-        return;
-    } 
-
-    sleepUntilDone();
+    } while(sleepUntilDone());
 
     stage = INITIALIZING;
 }
