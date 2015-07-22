@@ -40,7 +40,6 @@ void PositionJoints::begin_detection()
 //get moving boys!
 bool PositionJoints::position_joints_callback(operation_plushie::PositionJoints::Request &req, operation_plushie::PositionJoints::Response &res)
 {
-    ROS_INFO("starting");
     isComplete = false;
     isLeft = (req.names[0].find("left") != std::string::npos);
     armPose_pub = n.advertise<baxter_core_msgs::JointCommand>(std::string("/robot/limb/") + (isLeft?"left":"right") + "/joint_command", 1000);
@@ -66,12 +65,10 @@ void PositionJoints::update_joint_positions(sensor_msgs::JointState msg)
 
     if(isPositioned()) 
     {
-        ROS_INFO("we did it");
         isComplete = true;
     }
     else
     {
-        ROS_INFO("pubin");
         armPose_pub.publish(orders);
     }
 }

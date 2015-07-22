@@ -165,7 +165,7 @@ FindBowl::cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
     pcl::PointCloud<PointT>::Ptr cloud_cylinder (new pcl::PointCloud<PointT> ());
     extract.filter (*cloud_cylinder);
     
-    if (cloud_cylinder->points.size() < 200) 
+    if (cloud_cylinder->points.size() < 500) 
         return;
     ROS_INFO("size: %ld", cloud_cylinder->points.size());
     PointT cylinder_centroid = calcCentroid(cloud_cylinder);
