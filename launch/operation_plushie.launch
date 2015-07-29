@@ -6,6 +6,7 @@
     <node name="delivery_node" pkg="operation_plushie" type="delivery_node" required="true" />
     <node name="reposition_hand_node" pkg="operation_plushie" type="reposition_hand_node" required="true" output="screen" />
     <node name="find_bowl_node" pkg="operation_plushie" type="find_bowl_node" required="true" output="screen" />
+    <node name="position_joints_node" pkg="operation_plushie" type="position_joints_node" required="true" output="screen" />
     <node name="operation_plushie_node" pkg="operation_plushie" type="operation_plushie_node" required="true" cwd="node" output="screen" />
 
   <!-- kinect driver and transform publisher -->

@@ -115,13 +115,13 @@ bool RepositionHand::callback(operation_plushie::RepositionHand::Request &req, o
     if(!ik_solver.call(srv))
     {
         ROS_ERROR("Failed to call service IKSolver");
-        isStuck = true;
         return false;
     }
 
     if(!srv.response.isValid[0])
     {
         ROS_ERROR("Not a valid position, :(");
+        isStuck = true;
         return false;
     }
    

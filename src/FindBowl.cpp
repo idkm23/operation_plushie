@@ -121,7 +121,7 @@ FindBowl::cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
     seg.setNormalDistanceWeight (0.1);
     seg.setMethodType (pcl::SAC_RANSAC);
     seg.setMaxIterations (100);
-    seg.setDistanceThreshold (0.03);
+    seg.setDistanceThreshold (0.12);
     seg.setInputCloud (cloud_filtered);
     seg.setInputNormals (cloud_normals);
     // Obtain the plane inliers and coefficients
@@ -165,9 +165,9 @@ FindBowl::cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
     pcl::PointCloud<PointT>::Ptr cloud_cylinder (new pcl::PointCloud<PointT> ());
     extract.filter (*cloud_cylinder);
     
-    if (cloud_cylinder->points.empty ()) 
+    if (cloud_cylinder->points.size() < 500) 
         return;
-
+    ROS_INFO("size: %ld", cloud_cylinder->points.size());
     PointT cylinder_centroid = calcCentroid(cloud_cylinder);
 
     geometry_msgs::PointStamped pt, pt_transformed;
@@ -187,9 +187,9 @@ FindBowl::cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
     ROS_INFO("Finished x: %f, y: %f", b_x, b_y);
  
     stage = FINISHED;
-/*
+
   // Uncomment to enable filtered PC publishing
-    pcl::PointCloud<PointT>::Ptr centroid_line(new pcl::PointCloud<PointT>());
+/*    pcl::PointCloud<PointT>::Ptr centroid_line(new pcl::PointCloud<PointT>());
     
     centroid_line->width = 15;
     centroid_line->height = 1;
@@ -205,15 +205,16 @@ FindBowl::cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
     // Create a container for the data.
     sensor_msgs::PointCloud2 output;
 
-    pcl::toROSMsg(*centroid_line, output);
+    pcl::toROSMsg(*cloud_cylinder, output);
 
     output.header.stamp = ros::Time::now();
-    output.header.frame_id = "base";
+    output.header.frame_id = "camera_rgb_optical_frame"; 
 
     while(ros::ok) {
         output_pub.publish(output);
         ros::spinOnce();
-    }*/
+    }
+*/
 }
 
 PointT FindBowl::calcCentroid(pcl::PointCloud<PointT>::Ptr cloud) {
