@@ -6,7 +6,7 @@ WHAT TO DO:
 
 3. Type "ssh leviathan" in a new terminal to connect to leviathan (Eric's computer).
 
-3. In the leviathan terminal, type "roslaunch operation_plushie kinect_pc.launch" to start the drivers for the Xtion Pro.
+3. In the new leviathan terminal that you made, type "roslaunch operation_plushie kinect_pc.launch" to start the drivers for the Xtion Pro.
 
 4. In the main terminal, type "rosrun rqt_reconfigure rqt_reconfigure". Then, click "drivers" on the side bar in the window that pops up and check the box that says "depth_registration".
 
