@@ -1,6 +1,6 @@
 WHAT TO DO:
 
-1. Run ```"cd ~/indigo/Baxter_ws"``` and ```". ./src/operation_plushie/scripts/baxter_setup.sh"``` in terminal to start the cameras.
+1. Run ```**"cd ~/indigo/Baxter_ws"**``` and ```". ./src/operation_plushie/scripts/baxter_setup.sh"``` in terminal to start the cameras.
 
 2. If you do not hear a loud fan noise coming from Baxter or the fan noise ceases for whatever reason, then its motors are not enabled. Type ```"rosrun baxter_tools enable_robot.py -e"``` to enable it.
 
