@@ -27,7 +27,7 @@ STARTING FROM SCRATCH:
 If you are trying to run this on a brand new computer, then you will need the following:
 
   Packages
-  -------
+-----
   - This package
   - ROS Indigo (This has not been tested with other versions!)
   - OpenCV 2.4
