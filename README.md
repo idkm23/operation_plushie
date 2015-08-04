@@ -1,6 +1,10 @@
 Purpose
 =====
-This program allows Baxter to pick up a plush toy from a bowl and had it to a detected person. Pleasse note that it only tracks these specific toys and tries to find a bowl of them first. To see pictures of a plush toy and the bowl, go to the res folder and view "" and "", respectively.
+This program allows Baxter to pick up a plush toy from a bowl and had it to a detected person. Please note that it only tracks these specific toys and tries to find a bowl of them first.
+
+![Logo](https://github.com/idkm23/operation_plushie/blob/master/res/plush_toy.png)
+
+![Logo](https://github.com/idkm23/operation_plushie/blob/master/res/Plushie%20Bowl.jpg)
 
 Important!
 =====
@@ -41,7 +45,10 @@ Package Dependencies
   
 Hardware
 -------
-  - An Asus Xtion Pro that will be mounted on Baxter's chest. To see a picture of this, go to the res folder and view the        ".jpg" file.
+  - An Asus Xtion Pro that will be mounted on Baxter's chest.
+  
+![Logo](https://github.com/idkm23/operation_plushie/blob/master/res/xtion_pro_chest_image.png)
+
   - If the Xtion Pro is going to be plugged into a second computer, install all packages on that, as well  
 
 Troubleshooting
