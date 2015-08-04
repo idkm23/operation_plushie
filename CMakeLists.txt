@@ -133,6 +133,7 @@ include_directories(
 
  add_dependencies(delivery_node ${catkin_EXPORTED_TARGETS})
  add_dependencies(delivery_node Delivery.cpp)
+ add_dependencies(delivery_node Delivery.h)
  add_dependencies(delivery_node operation_plushie_generate_messages_cpp)
 
  add_dependencies(pickup_node ${catkin_EXPORTED_TARGETS})

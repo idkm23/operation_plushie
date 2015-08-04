@@ -1,52 +1,4 @@
-#include <ros/ros.h>
-
-#include <sensor_msgs/PointCloud2.h>
-#include <pcl_conversions/pcl_conversions.h>
-#include <pcl/point_cloud.h>
-#include <pcl/point_types.h>
-
-#include <pcl/ModelCoefficients.h>
-#include <pcl/io/pcd_io.h>
-#include <pcl/point_types.h>
-#include <pcl/filters/extract_indices.h>
-#include <pcl/filters/passthrough.h>
-#include <pcl/features/normal_3d.h>
-#include <pcl/sample_consensus/method_types.h>
-#include <pcl/sample_consensus/model_types.h>
-#include <pcl/segmentation/sac_segmentation.h>
-
-#include <operation_plushie/Ping.h>
-#include <operation_plushie/BowlValues.h>
-
-#include <geometry_msgs/PointStamped.h>
-#include <tf/transform_listener.h>
-
-//cloud > cloud filter > cloud cluster > cylinder
-
-typedef pcl::PointXYZ PointT;
-
-enum Status {SEARCH, FINISHED};
-
-class FindBowl
-{
-private:
-    ros::NodeHandle nh;
-    ros::ServiceServer bowl_service, bowl_values_service;
-    ros::Publisher output_pub;
-    ros::Subscriber depth_sub;
-    tf::TransformListener listener;
-    Status stage;
-    double b_x, b_y;
-
-public:
-    FindBowl();
-    void begin_detection();
-    bool bowl_cb(operation_plushie::Ping::Request&, operation_plushie::Ping::Response&);
-    bool bowl_values_cb(operation_plushie::BowlValues::Request&, operation_plushie::BowlValues::Response&);
-    void cloud_cb(const sensor_msgs::PointCloud2ConstPtr& input);
-   
-    static PointT calcCentroid(pcl::PointCloud<PointT>::Ptr);
-};
+#include "FindBowl.h"
 
 FindBowl::FindBowl()
 {
@@ -188,33 +140,6 @@ FindBowl::cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
  
     stage = FINISHED;
 
-  // Uncomment to enable filtered PC publishing
-/*    pcl::PointCloud<PointT>::Ptr centroid_line(new pcl::PointCloud<PointT>());
-    
-    centroid_line->width = 15;
-    centroid_line->height = 1;
-    centroid_line->points.resize(centroid_line->width * centroid_line->height);
-        
-    for(int i = 0; i < centroid_line->points.size(); i++)
-    {
-        centroid_line->points[i].x = b_x;
-        centroid_line->points[i].y = b_y;
-        centroid_line->points[i].z = pt_transformed.point.z + .01 * i;
-    }
-    
-    // Create a container for the data.
-    sensor_msgs::PointCloud2 output;
-
-    pcl::toROSMsg(*cloud_cylinder, output);
-
-    output.header.stamp = ros::Time::now();
-    output.header.frame_id = "camera_rgb_optical_frame"; 
-
-    while(ros::ok) {
-        output_pub.publish(output);
-        ros::spinOnce();
-    }
-*/
 }
 
 PointT FindBowl::calcCentroid(pcl::PointCloud<PointT>::Ptr cloud) {
