@@ -25,7 +25,7 @@ private:
         
     Stage state;
     baxter_core_msgs::JointCommand stretchPose, origPose;
-    double e0, e1, s0, s1, w0, w1, w2; 
+    std::vector<double> current_arm_positions;
     bool isRight, isPressed, isHolding, origStored;
 
 public:
@@ -35,6 +35,7 @@ public:
     void beginDetection();
     bool isCorrectPosition(baxter_core_msgs::JointCommand);
     void updateButtonState(baxter_core_msgs::DigitalIOState);
+    void storeJointStates(sensor_msgs::JointState);
     void updateEndEffectorState(baxter_core_msgs::EndEffectorState);
         
     bool isComplete(operation_plushie::isComplete::Request&, operation_plushie::isComplete::Response&);
