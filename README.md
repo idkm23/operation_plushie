@@ -26,7 +26,7 @@ Starting From Scratch
 =====
 If you are trying to run this on a brand new computer, then you will need the following:
 
-Packages
+Package Dependencies
 -----
   - This package
   - ROS Indigo (This has not been tested with other versions!)
