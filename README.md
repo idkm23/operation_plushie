@@ -1,3 +1,7 @@
+Purpose
+=====
+This program allows Baxter to pick up a plush toy from a bowl and had it to a detected person. Pleasse note that it only tracks these specific toys and tries to find a bowl of them first. To see pictures of a plush toy and the bowl, go to the res folder and view "" and "", respectively.
+
 Important!
 =====
 The following instructions are meant to be used on the robot-lab5 and leviathan computers, with the Xtion Pro plugged into the leviathan. This is also assuming that all of the packages are still on those computers. If this is not the case, see below for more details.
@@ -37,7 +41,7 @@ Package Dependencies
   
 Hardware
 -------
-  - An Asus Xtion Pro that will be mounted on Baxter's chest
+  - An Asus Xtion Pro that will be mounted on Baxter's chest. To see a picture of this, go to the res folder and view the        ".jpg" file.
   - If the Xtion Pro is going to be plugged into a second computer, install all packages on that, as well  
 
 Troubleshooting
@@ -46,11 +50,15 @@ Here's a list of the most common errors and their solutions:
 
   - Although sourcing is done in one of the bash scripts that you ran in step 1, if packages can't be found, it may be           necessary to head to the root of the workspace and run ```source devel/setup.bash```.
 
-  - If you have error messages saying that you could not connect to ROS_MASTER, then check your environment variables with       the following: run ```env | grep ROS``` and look at ROS_MASTER_URI and ROS_IP. ROS_MASTER_URI should be set to               "http://baxter.local:11311" or "http://baxter.lan:11311" and ROS_IP should be set to your IP address (use ```ifconfig```     to find this. Use ```export ROS_<MASTER_URI/IP>=<whatever it should be set to>```.
+  - If you get error messages saying that you could not connect to ROS_MASTER, then check your environment variables with       the following: run ```env | grep ROS``` and look at ROS_MASTER_URI and ROS_IP. ROS_MASTER_URI should be set to               "http://baxter.local:11311" or "http://baxter.lan:11311" and ROS_IP should be set to your IP address (use ```ifconfig```     to find this. Use ```export ROS_<MASTER_URI/IP>=<whatever it should be set to>```.
   
   - When running the Kinect Drivers (used for the Xtion Pro) on leviathan, it may provide an error message saying "Couldn't     find an AF_INET address for [baxter.lan]." Try the following: ```export ROS_MASTER_URI=http://baxter.local:11311```
   
   - If the gripper fails to close after starting the program and Baxter begins to skip stages, then this is a problem with       the gripper's state. If you run ```rostopic echo /robot/end_effector/left_gripper/state```, you will see that almost all     of its binary parameters are set to 2 (likely an error state). We have no solution for this or any idea why this occurs.     The problem stopped once we reset Baxter once or twice, but we cannot confirm that to be a solution.
+
+Future Work
+=====
+In the res folder, there should be a file called "haarcascade_plushie.xml". This is not being used at the moment. It is a trained classifier that allows the computer to (somewhat) detect the plush toys. The goal was to try and use this to replace the color tracking, however,it has not been implemented.
   
 Authors
 =====
