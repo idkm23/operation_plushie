@@ -2,7 +2,7 @@
 
     <machine name="leviathan" address="leviathan" env-loader="~/indigo/src/operation_plushie/scripts/leviathan_env.sh" />
 
-    <node name="pickup_node" pkg="operation_plushie" type="pickup_node" required="true" output="screen" />
+    <node name="pickup_node" pkg="operation_plushie" type="pickup_node" required="true" output="screen" cwd="node" />
     <node name="delivery_node" pkg="operation_plushie" type="delivery_node" required="true" />
     <node name="reposition_hand_node" pkg="operation_plushie" type="reposition_hand_node" required="true" output="screen" />
     <node name="find_bowl_node" pkg="operation_plushie" type="find_bowl_node" required="true" output="screen" />

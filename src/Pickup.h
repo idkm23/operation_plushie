@@ -48,6 +48,7 @@ private:
     double lowering_x, lowering_y;
     Stage stage;
     int yaw_index, no_sign_of_plushies;
+    sensor_msgs::ImagePtr happy_face, sad_face;
 
     static const int iLowH, iHighH, iLowS, iHighS, iLowV, iHighV;
     static const double yawDictionary[];

@@ -64,21 +64,19 @@ bool RepositionHand::callback(operation_plushie::RepositionHand::Request &req, o
     ps.pose.orientation.w = oriw;
     //end math functions
 
-    ROS_INFO("x:%f y:%f z:%f orix:%f oriy:%f oriz:%f oriw:%f", req.x, req.y, req.z, orix, oriy, oriz, oriw);
-    
     srv.request.pose_stamp.push_back(ps);
 
     if(!ik_solver.call(srv))
     {
         ROS_ERROR("Failed to call service IKSolver");
-        return true;
+        return false;
     }
 
     if(!srv.response.isValid[0])
     {
         ROS_ERROR("Not a valid position, :(");
         isStuck = true;
-        return false;
+        return true;
     }
    
     msg.mode = 1;
@@ -160,10 +158,6 @@ bool RepositionHand::isPositioned(baxter_core_msgs::EndpointState eps)
 void RepositionHand::updateEffort(sensor_msgs::JointState js)
 {
     int indexSpacing = (isLeft ? 0 : 7);
-    for(int i = 0; i < 8; i++)
-    {
-        //ROS_INFO("%d : %f", i, js.effort[(2 + i + indexSpacing)]);
-    }
 
     s1_torque = js.effort[(isLeft ? 5 : 12)];
     if(fabs(s1_torque - consistent_torque) < .15)
