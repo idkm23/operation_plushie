@@ -205,25 +205,11 @@ bool Delivery::isCorrectPosition(baxter_core_msgs::JointCommand msg)
 {
     for(int i = 0; i < current_arm_positions.size(); i++) 
     {
-        if(fabs(current_arm_positions[i] - msg.command[i]) < 0.1)
+        if(fabs(current_arm_positions[i] - msg.command[i]) > 0.1)
             return false;
     }
 
     return true;
-
-/*
-    if(e0 <= msg.command[0] - 0.1 || e0 >= msg.command[0] + 0.1 || e1 <= msg.command[1] - 0.1 || e1 >= msg.command[1] + 0.1 || s0 <= msg.command[2] - 0.1 
-        || s0 >= msg.command[2] + 0.1 || s1 <= msg.command[3] - 0.1 || s1 >= msg.command[3] + 0.1 || w0 <= msg.command[4] - 0.1 || w0 >= msg.command[4] + 0.1 
-        || w1 <= msg.command[5] - 0.1 || w1 >= msg.command[5] + 0.1 || w2 <= msg.command[6] - 0.1 || w2 >= msg.command[6] + 0.1)
-    {    
-        return false;
-    }
-    else
-    {
-        return true;
-    }
-*/
-
 }
 
 /* Constantly checking button state. Sets isPressed permanently to true if the button is pressed (permanence for each delivery) */

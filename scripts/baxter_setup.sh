@@ -1,7 +1,6 @@
 #!/bin/bash
 echo "In order to source properly, run this script using '. ./<script>'!"
 source ~/indigo/rethink_ws/devel/setup.bash
-source ~/indigo/Baxter_ws/devel/setup.bash
 export ROS_MASTER_URI=http://baxter.local:11311
 export ROS_IP=10.0.7.114   
 exec "$@"                                         
@@ -20,3 +19,4 @@ rosrun baxter_tools camera_control.py -c right_hand_camera
 echo "Closed right cam again."
 rosrun baxter_tools camera_control.py -o head_camera -r 960x600
 echo "Opened head cam."
+source ~/indigo/Baxter_ws/devel/setup.bash

@@ -12,14 +12,14 @@ FaceDetector::FaceDetector()
     delivery_client = n.serviceClient<operation_plushie::Deliver>("delivery_service");
     delivery_isComplete_client = n.serviceClient<operation_plushie::isComplete>("delivery_isComplete_service");
 
-    if( !face_cascade.load("../../../res/haarcascade_frontalface_alt.xml") )
+    if( !face_cascade.load("../../../src/operation_plushie/res/haarcascade_frontalface_alt.xml") )
     { 
         printf("--(!)Error loading face cascade\n"); 
     }
     
-    cv::Mat happy_mat = cv::imread("../../../res/happy.jpg", CV_LOAD_IMAGE_COLOR), 
-            unsure_mat = cv::imread("../../../res/unsure.jpg", CV_LOAD_IMAGE_COLOR),
-            lemon_mat = cv::imread("../../../res/big_lemongrab.png", CV_LOAD_IMAGE_COLOR);
+    cv::Mat happy_mat = cv::imread("../../../src/operation_plushie/res/happy.jpg", CV_LOAD_IMAGE_COLOR), 
+            unsure_mat = cv::imread("../../../src/operation_plushie/res/unsure.jpg", CV_LOAD_IMAGE_COLOR),
+            lemon_mat = cv::imread("../../../src/operation_plushie/res/big_lemongrab.png", CV_LOAD_IMAGE_COLOR);
    
     lemon_face = cv_bridge::CvImage(std_msgs::Header(), "bgr8", lemon_mat).toImageMsg(); 
     happy_face = cv_bridge::CvImage(std_msgs::Header(), "bgr8", happy_mat).toImageMsg();
@@ -93,7 +93,7 @@ void FaceDetector::detectAndDisplay(cv::Mat frame)
     else
         xdisplay_pub.publish(happy_face);
 
-    cv::imshow("Test", frame);
+    cv::imshow("Face Detector", frame);
     cv::waitKey(10);
 }
 
@@ -273,6 +273,10 @@ void FaceDetector::pickup()
 
     do {
         pickup_isComplete_client.call(pickup_progress);
+        if(pickup_progress.response.isStuck)
+            xdisplay_pub.publish(lemon_face);
+        else
+            xdisplay_pub.publish(happy_face);
     } while(!pickup_progress.response.isComplete);
     
     state = DELIVER;
@@ -280,7 +284,6 @@ void FaceDetector::pickup()
 
 void FaceDetector::deliver()
 {
-    ROS_INFO("pleasedeliver");
     operation_plushie::Deliver srv;
     srv.request.headPos = head_state.pan;
     
