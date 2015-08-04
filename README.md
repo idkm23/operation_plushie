@@ -6,7 +6,7 @@ This program is also currently set up to use Baxter's left arm, though hardcoded
 
 WHAT TO DO:
 =====
-1. Move to the root of the workspace containing the operation_plushie package (Run ```cd ~/indigo/Baxter_ws``` if you're using robot-lab5) and run ```. ./src/operation_plushie/scripts/baxter_setup.sh``` in terminal to start the cameras.
+1. Move to the root of the workspace containing the operation_plushie package (Run ```cd ~/indigo/Baxter_ws``` if you're using robot-lab5) and type ```. ./src/operation_plushie/scripts/baxter_setup.sh``` in the terminal to start the cameras.
 
 2. If you do not hear a loud fan noise coming from Baxter or the fan noise ceases for whatever reason, then its motors are not enabled. Type ```rosrun baxter_tools enable_robot.py -e``` to enable it.
 
@@ -43,6 +43,7 @@ Hardware
 AUTHORS
 =====
 Christopher Gibbs
+
 Christopher Munroe
 
 LAST UPDATED
