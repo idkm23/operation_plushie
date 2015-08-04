@@ -26,7 +26,7 @@ STARTING FROM SCRATCH:
 =====
 If you are trying to run this on a brand new computer, then you will need the following:
 
-  Packages
+Packages
 -----
   - This package
   - ROS Indigo (This has not been tested with other versions!)
@@ -35,8 +35,8 @@ If you are trying to run this on a brand new computer, then you will need the fo
   - PCL 1.7
   - Rethink SDK for Baxter
   
-  Hardware
-  -------
+Hardware
+-------
   - An Asus Xtion Pro that will be mounted on Baxter's chest
   - If the Xtion Pro is going to be plugged into a second computer, install all packages on that, as well  
   
