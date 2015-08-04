@@ -1,10 +1,10 @@
-IMPORTANT!
+Important!
 =====
 The following instructions are meant to be used on the robot-lab5 and leviathan computers, with the Xtion Pro plugged into the leviathan. This is also assuming that all of the packages are still on those computers. If this is not the case, see below for more details.
 
 This program is also currently set up to use Baxter's left arm, though hardcoded values can be adjusted to use its right arm.
 
-WHAT TO DO
+Directions
 =====
 1. Move to the root of the workspace containing the operation_plushie package (Run ```cd ~/indigo/Baxter_ws``` if you're using robot-lab5) and type ```. ./src/operation_plushie/scripts/baxter_setup.sh``` in the terminal to start the cameras.
 
@@ -22,7 +22,7 @@ WHAT TO DO
 
 8. To disable Baxter's motors, start by moving Baxter's arms away from any tables or other objects. His arms will fall when they are disabled, so make sure they won't hit anything. Then, type ```rosrun baxter_tools enable_robot.py -d```.
 
-STARTING FROM SCRATCH
+Starting From Scratch
 =====
 If you are trying to run this on a brand new computer, then you will need the following:
 
@@ -52,12 +52,12 @@ Here's a list of the most common errors and their solutions:
   
   - If the gripper fails to close after starting the program and Baxter begins to skip stages, then this is a problem with       the gripper's state. If you run ```rostopic echo /robot/end_effector/left_gripper/state```, you will see that almost all     of its binary parameters are set to 2 (likely an error state). We have no solution for this or any idea why this occurs.     The problem stopped once we reset Baxter once or twice, but we cannot confirm that to be a solution.
   
-AUTHORS
+Authors
 =====
 Christopher Gibbs
 
 Christopher Munroe
 
-LAST UPDATED
+Last Updated
 =====
 August 4, 2015
