@@ -16,6 +16,7 @@ Pickup::Pickup()
     bowl_values_client = n.serviceClient<operation_plushie::BowlValues>("bowl_values_service");
     position_joints_progress = n.serviceClient<operation_plushie::isComplete>("position_joints_progress");
     position_joints_client = n.serviceClient<operation_plushie::PositionJoints>("position_joints_service");
+    xdisplay_pub = n.advertise<sensor_msgs::Image>("/robot/xdisplay", 1000);    
  
     x = 0.6;
     y = 0.5;
@@ -64,23 +65,23 @@ void Pickup::chooseStage(const sensor_msgs::ImageConstPtr& msg)
 {
     switch(stage)
     {
-    case TOBOWL:
-        moveAboveBowl();
-        break;
-    case INITIALIZING:
-        setupHand();
-        break;
-    case CENTERING:
-        getHandImage(msg);
-        break;
-    case LOWERING:
-        lowerArm();
-        break;
-    case RETURNING:
-        fetchNRaise(); 
-        break;
-    case FINISHED:
-        return;    
+        case TOBOWL:
+            moveAboveBowl();
+            break;
+        case INITIALIZING:
+            setupHand();
+            break;
+        case CENTERING:
+            getHandImage(msg);
+            break;
+        case LOWERING:
+            lowerArm();
+            break;
+        case RETURNING:
+            fetchNRaise(); 
+            break;
+        case FINISHED:
+            return;    
     }
 }
 
@@ -167,8 +168,12 @@ void Pickup::moveAboveBowl()
 
     operation_plushie::BowlValues srv_values;
     operation_plushie::Ping srv_ping;
-   
+  
+    bool cantReach = false; 
     do { 
+
+        if(cantReach)
+            xdisplay_pub.publish(sadface);
 
         if(!bowl_client.call(srv_ping))
         {
@@ -206,8 +211,11 @@ void Pickup::moveAboveBowl()
             ROS_ERROR("Failed to call reposition_hand_service");
             return;
         } 
-
+        
+        cantReach = true;
     } while(sleepUntilDone());
+
+    xdisplay_pub.publish(happyface);
 
     stage = INITIALIZING;
 }
