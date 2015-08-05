@@ -24,13 +24,10 @@
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 
-#include <pthread.h>
-
-//for IR sensor
-#include <sensor_msgs/Range.h>
-
 //for button
 #include "baxter_core_msgs/DigitalIOState.h"
+
+#include <pthread.h>
 
 enum Stage {TOBOWL, INITIALIZING, CENTERING, LOWERING, RETURNING, FINISHED};
 
@@ -41,10 +38,9 @@ private:
     ros::ServiceServer pickup_service, isComplete_service;
     ros::ServiceClient reposition_hand_client, reposition_progress_client, bowl_client, bowl_values_client, position_joints_client, position_joints_progress;
     ros::Publisher arm_pub, xdisplay_pub, gripper_pub;
-    ros::Subscriber raw_image, endstate_sub, ir_sensor_sub, is_holding_sub, ok_button_sub;
+    ros::Subscriber raw_image, endstate_sub, is_holding_sub, ok_button_sub;
     bool isCentered, isLeft, isHolding, isPressed, missedLast;
     double x, y, z;
-    double ir_sensor;
     double lowering_x, lowering_y;
     Stage stage;
     int yaw_index, no_sign_of_plushies;
@@ -63,7 +59,6 @@ public:
     bool grabPlushie(operation_plushie::Pickup::Request&, operation_plushie::Pickup::Response&);
 
     void updateEndpoint(baxter_core_msgs::EndpointState);
-    void updateIrSensor(sensor_msgs::Range);
     void updateEndEffectorState(baxter_core_msgs::EndEffectorState);
     void updateOKButtonState(baxter_core_msgs::DigitalIOState);
 

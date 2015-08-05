@@ -31,7 +31,7 @@ FindBowl::cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 {
     if(stage == FINISHED)
     {
-        depth_sub = nh.subscribe("this_is_not_a_topic", 1, &FindBowl::cloud_cb, this);
+        depth_sub.shutdown();
         return;
     }
 
@@ -117,7 +117,7 @@ FindBowl::cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
     pcl::PointCloud<PointT>::Ptr cloud_cylinder (new pcl::PointCloud<PointT> ());
     extract.filter (*cloud_cylinder);
     
-    if (cloud_cylinder->points.size() < 500) 
+    if (cloud_cylinder->points.size() < 800) 
         return;
     ROS_INFO("size: %ld", cloud_cylinder->points.size());
     PointT cylinder_centroid = calcCentroid(cloud_cylinder);
@@ -142,11 +142,11 @@ FindBowl::cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 
 }
 
-PointT FindBowl::calcCentroid(pcl::PointCloud<PointT>::Ptr cloud) {
+PointT 
+FindBowl::calcCentroid(pcl::PointCloud<PointT>::Ptr cloud) {
     size_t size = cloud->points.size();
     double x = 0, y = 0, z = 0;
     
-    //for(std::vector<PointT>::const_iterator it = cloud->points.begin(); it != cloud->points.end(); ++it)
     for(size_t i = 0; i < size; i++)    
     {
         x += cloud->points[i].x;
@@ -157,7 +157,8 @@ PointT FindBowl::calcCentroid(pcl::PointCloud<PointT>::Ptr cloud) {
     return PointT(x / size, y / size, z / size);
 }
 
-bool FindBowl::bowl_values_cb(operation_plushie::BowlValues::Request &req, operation_plushie::BowlValues::Response &res) 
+bool 
+FindBowl::bowl_values_cb(operation_plushie::BowlValues::Request &req, operation_plushie::BowlValues::Response &res) 
 {
     res.x = b_x;
     res.y = b_y;
