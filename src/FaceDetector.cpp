@@ -1,3 +1,5 @@
+/* This program is used for tracking faces and displaying images to the head screen. It is also a hub where all of the other main services are called. */
+
 #include "FaceDetector.h"
 
 FaceDetector::FaceDetector() 

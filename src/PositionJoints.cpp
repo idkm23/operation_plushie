@@ -1,3 +1,5 @@
+/* This will take a vector of positions for joints and move each joint until they are all at their desired position. */
+
 #include "PositionJoints.h"
 
 PositionJoints::PositionJoints()
