@@ -8,13 +8,16 @@ PositionJoints::PositionJoints()
     isComplete = true;
 }
 
-void PositionJoints::begin_detection()
+/* Starts everything. */
+void 
+PositionJoints::begin_detection()
 {
     ros::spin();
 }
 
-//get moving boys!
-bool PositionJoints::position_joints_callback(operation_plushie::PositionJoints::Request &req, operation_plushie::PositionJoints::Response &res)
+/* Looks at the request to see which joints should move where. */
+bool 
+PositionJoints::position_joints_callback(operation_plushie::PositionJoints::Request &req, operation_plushie::PositionJoints::Response &res)
 {
     isComplete = false;
     isLeft = (req.names[0].find("left") != std::string::npos);
@@ -26,8 +29,9 @@ bool PositionJoints::position_joints_callback(operation_plushie::PositionJoints:
     return true;
 }
 
-//figures out if we are there yet
-void PositionJoints::update_joint_positions(sensor_msgs::JointState msg)
+/* Updates the arm's position and decides if it has reached its destination. */
+void 
+PositionJoints::update_joint_positions(sensor_msgs::JointState msg)
 {
     if(isComplete)
         return;
@@ -39,6 +43,7 @@ void PositionJoints::update_joint_positions(sensor_msgs::JointState msg)
             current_positions.push_back(msg.position[i]);
     }    
 
+    // Keep publishing commands until we reach the correct position.
     if(isPositioned()) 
     {
         isComplete = true;
@@ -49,7 +54,9 @@ void PositionJoints::update_joint_positions(sensor_msgs::JointState msg)
     }
 }
 
-bool PositionJoints::isPositioned()
+/* Returns false if the current position is not within range of where the arm was told to go, Returns true otherwise. */
+bool 
+PositionJoints::isPositioned()
 {
     for(size_t i = 0; i < orders.command.size(); i++)
     {
@@ -59,7 +66,9 @@ bool PositionJoints::isPositioned()
     return true;
 }
 
-bool PositionJoints::hasArrived(operation_plushie::isComplete::Request &req, operation_plushie::isComplete::Response &res) 
+/* Sets the response value to isComplete and returns true to show that it contacted the service. isComplete checks if the service worked correctly. */
+bool 
+PositionJoints::hasArrived(operation_plushie::isComplete::Request &req, operation_plushie::isComplete::Response &res) 
 {
     res.isComplete = isComplete;    
     return true;
