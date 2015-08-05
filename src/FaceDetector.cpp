@@ -12,11 +12,14 @@ FaceDetector::FaceDetector()
     delivery_client = n.serviceClient<operation_plushie::Deliver>("delivery_service");
     delivery_isComplete_client = n.serviceClient<operation_plushie::isComplete>("delivery_isComplete_service");
 
+    //Check to make sure that the cascade classifier is loaded correctly.
+    //The program will fail if it isn't loaded.
     if( !face_cascade.load("../../../src/operation_plushie/res/haarcascade_frontalface_alt.xml") )
     { 
         printf("--(!)Error loading face cascade\n"); 
     }
     
+    //Loads the images used for the screen on Baxter's head.
     cv::Mat happy_mat = cv::imread("../../../src/operation_plushie/res/happy.jpg", CV_LOAD_IMAGE_COLOR), 
             unsure_mat = cv::imread("../../../src/operation_plushie/res/unsure.jpg", CV_LOAD_IMAGE_COLOR),
             lemon_mat = cv::imread("../../../src/operation_plushie/res/big_lemongrab.png", CV_LOAD_IMAGE_COLOR);
@@ -30,31 +33,42 @@ FaceDetector::FaceDetector()
     state = PICKUP;
 }
 
-void FaceDetector::begin_detection()
+/* Called by operation_plushie_node.cpp to start the program. */
+void 
+FaceDetector::begin_detection()
 {
     ros::spin();
 }
 
-void FaceDetector::updateHead(const baxter_core_msgs::HeadState::ConstPtr& msg) {
+/* This updates a variable that stores the state of Baxter's head (position, etc.). */
+void 
+FaceDetector::updateHead(const baxter_core_msgs::HeadState::ConstPtr& msg) {
 	head_state = *msg;
 }
 
-void FaceDetector::head_camera_processing(const sensor_msgs::ImageConstPtr& msg)
+/* Converts the image into a mat and stores it in a variable, calling detectAndDisplay later on. */
+void 
+FaceDetector::head_camera_processing(const sensor_msgs::ImageConstPtr& msg)
 {
     cv_bridge::CvImagePtr cv_ptr_cam;
     try 
     {   
+        // This variable is assigned to the output of a function that converts an image to a mat.
         cv_ptr_cam = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
     }   
     catch (cv_bridge::Exception& e)
-    {   
+    {  
+        // Gives an error if it didn't work. 
         ROS_ERROR("cv_bridge exception: %s", e.what());
         return;
     }
 
     detectAndDisplay(cv_ptr_cam->image);   
 }
-void FaceDetector::detectAndDisplay(cv::Mat frame)
+
+/* Detects faces and displays a face based on what it sees. */
+void 
+FaceDetector::detectAndDisplay(cv::Mat frame)
 {
     std::vector<cv::Rect> raw_faces;
     cv::Mat frame_gray;
@@ -87,17 +101,23 @@ void FaceDetector::detectAndDisplay(cv::Mat frame)
     } 
     
     if(no_face_count > 0)
+        //Display angry face if he hasn't seen a face for any period of time.
         xdisplay_pub.publish(lemon_face);
     else if(fromCenter > 50 || fromCenter < -50)
+        //Display unsure face if he sees an uncentered face.
         xdisplay_pub.publish(unsure_face);
     else
+        //Display happy face if he sees a centered face.
         xdisplay_pub.publish(happy_face);
 
+    //Displays the camera feed with the face detection overlay on the computer screen.
     cv::imshow("Face Detector", frame);
     cv::waitKey(10);
 }
 
-bool FaceDetector::properColor(cv::Mat portion)
+/* Thresholds the face detection image and sees if the face has a certain percentage of the proper color in it. Returns true if the face is properly colored. */
+bool 
+FaceDetector::properColor(cv::Mat portion)
 {
     int iLowH = 0,
         iHighH = 43,
@@ -128,10 +148,14 @@ bool FaceDetector::properColor(cv::Mat portion)
     return (percentage > .31 && percentage < .7);
 }
 
-void FaceDetector::addConsistent(cv::Rect r)
+/* Looks at each face and checks its consistency, assigning a rating to it. */
+void 
+FaceDetector::addConsistent(cv::Rect r)
 {
+    // Look through a vector of rectangles that are drawn around each face.
     for(int i = 0; i < consistent_rects.size(); i++)
     {
+            // If it's overlapping with a rectangle previously in that area, increase its rating.
             if(isOverlapping(r, consistent_rects[i].rect))
             {
                 consistent_rects[i].rect = r;
@@ -142,17 +166,22 @@ void FaceDetector::addConsistent(cv::Rect r)
     ConsistentRect newRect;
     newRect.rect = r;
     newRect.rating = 1.1;
+    // Push the rectangle into a vector of known, consistent rectangles (faces).
     consistent_rects.push_back(newRect);
 }
 
-bool FaceDetector::isOverlapping(cv::Rect r1, cv::Rect r2)
+/* Checks if the rectangle is overlapping using an algorithm. Returns true if this is the case. */
+bool 
+FaceDetector::isOverlapping(cv::Rect r1, cv::Rect r2)
 {
     int overlap_width = std::min(r1.x + r1.width, r2.x + r2.width) > std::max(r1.x, r2.x) ? 1 : 0; 
     int overlap_height = std::min(r1.y, r2.y) > std::max(r1.y - r1.height, r2.y - r2.height) ? 1 : 0;
     return (overlap_width == 1 && overlap_height == 1);
 }
 
-void FaceDetector::decrementConsistentRects() {
+/* Decrement the value of the rectangle's rating and erase any rectangle's whose consistencies are too low */
+void 
+FaceDetector::decrementConsistentRects() {
     for(int i = 0; i < consistent_rects.size(); i++)
     {
         if((consistent_rects[i].rating -= .9) < -1) {
@@ -162,7 +191,9 @@ void FaceDetector::decrementConsistentRects() {
     }
 }
 
-int FaceDetector::findBestIndex(cv::Mat frame) 
+/* Finds the best-rated face and draws a red circle around it. */
+int 
+FaceDetector::findBestIndex(cv::Mat frame) 
 {
     int best_index = -1, best_rating = -1;
     cv::Point best_point;
@@ -177,15 +208,18 @@ int FaceDetector::findBestIndex(cv::Mat frame)
     }
 
     if(best_index >= 0) {
+        // Sets best_point to be the center of the most consistent rectangle.
         best_point = cv::Point(consistent_rects[best_index].rect.x + consistent_rects[best_index].rect.width/2, consistent_rects[best_index].rect.y + consistent_rects[best_index].rect.height/2);
         
+        // Draws a red circle around best_point.
         cv::ellipse( frame, best_point, cv::Size( consistent_rects[best_index].rect.width*0.5, consistent_rects[best_index].rect.height*0.5), 0, 0, 360, cv::Scalar( 0, 0, 255 ), 4, 8, 0 );
     }
     
     return best_index;
 }
 
-void FaceDetector::tickFaceCount(int best_index, int confirmed_size, cv::Mat frame) {
+void 
+FaceDetector::tickFaceCount(int best_index, int confirmed_size, cv::Mat frame) {
     const int FACE_COUNT = 5;    
 
     if(confirmed_size)
@@ -221,7 +255,8 @@ void FaceDetector::tickFaceCount(int best_index, int confirmed_size, cv::Mat fra
     }   
 }
 
-std::vector<cv::Rect> FaceDetector::findConfirmedFaces(std::vector<cv::Rect> raw_faces, cv::Mat frame)
+std::vector<cv::Rect> 
+FaceDetector::findConfirmedFaces(std::vector<cv::Rect> raw_faces, cv::Mat frame)
 {
     std::vector<cv::Rect> confirmed_faces;
     for ( size_t i = 0; i < raw_faces.size(); i++ )
@@ -244,7 +279,9 @@ std::vector<cv::Rect> FaceDetector::findConfirmedFaces(std::vector<cv::Rect> raw
     return confirmed_faces;
 }
 
-void FaceDetector::chooseStage(const sensor_msgs::ImageConstPtr& msg)
+/* Selects what to do based on its state. */
+void 
+FaceDetector::chooseStage(const sensor_msgs::ImageConstPtr& msg)
 {
     switch(state)
     {
@@ -258,7 +295,9 @@ void FaceDetector::chooseStage(const sensor_msgs::ImageConstPtr& msg)
 
 } 
 
-void FaceDetector::pickup()
+/* Calls the Pickup service and sets the state to Deliver when it's done. */
+void 
+FaceDetector::pickup()
 {
     //TODO: fix this assumption (always left) 
     operation_plushie::Pickup srv;
@@ -266,11 +305,12 @@ void FaceDetector::pickup()
     srv.request.isFirst = isFirst;
     isFirst = false;
 
-    //sets stage in pickup to initializing
+    //Sets stage in pickup to initializing.
     pickup_client.call(srv);
     
     operation_plushie::isComplete pickup_progress;
 
+    // Displays angry face if the arm can't move or a happy face if it can.
     do {
         pickup_isComplete_client.call(pickup_progress);
         if(pickup_progress.response.isStuck)
@@ -282,7 +322,9 @@ void FaceDetector::pickup()
     state = DELIVER;
 }
 
-void FaceDetector::deliver()
+/* Calls the Deliver service and changes the state to PICKUP once it's done. */
+void 
+FaceDetector::deliver()
 {
     operation_plushie::Deliver srv;
     srv.request.headPos = head_state.pan;
