@@ -2,7 +2,8 @@ Purpose
 =====
 This program allows Baxter to pick up a plush toy from a bowl and had it to a detected person. Please note that it only tracks these specific toys and tries to find a bowl of them first.
 
-![Logo](https://github.com/idkm23/operation_plushie/blob/master/res/plush_toy.png)             ![Logo](https://github.com/idkm23/operation_plushie/blob/master/res/Plushie%20Bowl.jpg)
+![Logo](https://github.com/idkm23/operation_plushie/blob/master/res/plush_toy.png)
+![Logo](https://github.com/idkm23/operation_plushie/blob/master/res/Plushie%20Bowl.jpg)
 
 Important!
 =====
