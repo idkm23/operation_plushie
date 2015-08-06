@@ -1,3 +1,5 @@
+/* Launched from operation_plushie.launch. Starts the Pickup service. */
+
 #include "Pickup.cpp"
 
 int main(int argc, char **argv)
