@@ -1,3 +1,5 @@
+/* This header file provides function headers for PositionJoints.cpp. */
+
 #include <ros/ros.h>
 #include <operation_plushie/isComplete.h>
 #include <operation_plushie/PositionJoints.h>
