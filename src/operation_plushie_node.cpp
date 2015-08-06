@@ -7,7 +7,8 @@ int main(int argc, char** argv)
 {
     ros::init(argc, argv, "operation_plushie_node");
     FaceDetector fd;
-    fd.begin_detection();   
+
+    ros::spin();
  
     return 0;
 }

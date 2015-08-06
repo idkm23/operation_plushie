@@ -34,7 +34,6 @@ private:
 
 public:
     RepositionHand();
-    void begin_detection();
     bool callback(operation_plushie::RepositionHand::Request&, operation_plushie::RepositionHand::Response&);
     void updateLeftEndpoint(baxter_core_msgs::EndpointState);
     void updateRightEndpoint(baxter_core_msgs::EndpointState);

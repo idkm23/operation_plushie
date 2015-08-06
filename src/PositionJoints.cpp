@@ -10,13 +10,6 @@ PositionJoints::PositionJoints()
     isComplete = true;
 }
 
-/* Starts everything. */
-void 
-PositionJoints::begin_detection()
-{
-    ros::spin();
-}
-
 /* Looks at the request to see which joints should move where. */
 bool 
 PositionJoints::position_joints_callback(operation_plushie::PositionJoints::Request &req, operation_plushie::PositionJoints::Response &res)

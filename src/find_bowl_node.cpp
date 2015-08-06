@@ -7,7 +7,9 @@ main (int argc, char** argv)
 {
     ros::init (argc, argv, "find_bowl_node");
     FindBowl fb;
-    fb.begin_detection();   
+
+    ros::spin();
+
     return (0);
 }
 

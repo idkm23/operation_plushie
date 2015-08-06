@@ -34,7 +34,6 @@ public:
     Delivery();
     void callback(sensor_msgs::JointState);
     bool deliver(operation_plushie::Deliver::Request &req, operation_plushie::Deliver::Response &res);
-    void beginDetection();
     bool isCorrectPosition(baxter_core_msgs::JointCommand);
     void updateButtonState(baxter_core_msgs::DigitalIOState);
     void storeJointStates(sensor_msgs::JointState);

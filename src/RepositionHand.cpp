@@ -5,13 +5,6 @@
 const int RepositionHand::RIGHT = 0;
 const int RepositionHand::LEFT = 1;
 
-/* Starts up the callback functions. */
-void 
-RepositionHand::begin_detection()
-{
-    ros::spin();
-}
-
 RepositionHand::RepositionHand()
 {
     reposition_hand_service = n.advertiseService("reposition_hand_service", &RepositionHand::callback, this);

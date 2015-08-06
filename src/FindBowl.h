@@ -42,7 +42,6 @@ private:
 
 public:
     FindBowl();
-    void begin_detection();
     bool bowl_cb(operation_plushie::Ping::Request&, operation_plushie::Ping::Response&);
     bool bowl_values_cb(operation_plushie::BowlValues::Request&, operation_plushie::BowlValues::Response&);
     void cloud_cb(const sensor_msgs::PointCloud2ConstPtr& input);

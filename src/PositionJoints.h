@@ -17,9 +17,9 @@ private:
     baxter_core_msgs::JointCommand orders;
     std::vector<double> current_positions;
     bool isComplete, isLeft;
+
 public:
     PositionJoints();
-    void begin_detection();    
     bool position_joints_callback(operation_plushie::PositionJoints::Request&, operation_plushie::PositionJoints::Response&);
     void update_joint_positions(sensor_msgs::JointState);
     bool isPositioned();

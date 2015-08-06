@@ -52,7 +52,6 @@ private:
 
 public:
     FaceDetector();
-    void begin_detection();
     void head_camera_processing(const sensor_msgs::ImageConstPtr&);
     void detectAndDisplay(cv::Mat); 
     void updateHead(const baxter_core_msgs::HeadState::ConstPtr&);

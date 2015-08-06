@@ -13,11 +13,6 @@ Delivery::Delivery() : loop_rate(10) {
     state = FINISHED;
 }
 
-/* Starts everything. */
-void Delivery::beginDetection() {
-    ros::spin();
-}
-
 /* Basically the heart of the delivery node. */
 void Delivery::callback(sensor_msgs::JointState msg)
 {
@@ -69,7 +64,6 @@ void Delivery::storeJointStates(sensor_msgs::JointState msg)
 /* With the 'state' instance variable, we select which task is next in the delivery process using enums */
 void Delivery::selectState()
 {    
-
     switch(state)
     {
         case STRETCHING:
@@ -101,8 +95,6 @@ bool Delivery::deliver(operation_plushie::Deliver::Request &req, operation_plush
     is_holding_sub = n.subscribe<baxter_core_msgs::EndEffectorState>(
         std::string("/robot/end_effector/") + (isRight ? "right" : "left") + "_gripper/state", 10, &Delivery::updateEndEffectorState, this);
 
-    std::string names[7];   
-    
     //empty any old values left in the vector
     stretchPose.names.clear();
     origPose.names.clear();
@@ -114,33 +106,28 @@ bool Delivery::deliver(operation_plushie::Deliver::Request &req, operation_plush
     {
         armPose_pub = n.advertise<baxter_core_msgs::JointCommand>("/robot/limb/right/joint_command", 1000);
 
-        names[0] = "right_e0";
-        names[1] = "right_e1";
-        names[2] = "right_s0";
-        names[3] = "right_s1";
-        names[4] = "right_w0";
-        names[5] = "right_w1";
-        names[6] = "right_w2";
+        stretchPose.names.push_back("right_e0");
+        stretchPose.names.push_back("right_e1");
+        stretchPose.names.push_back("right_s0");
+        stretchPose.names.push_back("right_s1");
+        stretchPose.names.push_back("right_w0");
+        stretchPose.names.push_back("right_w1");
+        stretchPose.names.push_back("right_w2");
     }
     else 
     {
         armPose_pub = n.advertise<baxter_core_msgs::JointCommand>("/robot/limb/left/joint_command", 1000);
 
-        names[0] = "left_e0";
-        names[1] = "left_e1";
-        names[2] = "left_s0";
-        names[3] = "left_s1";
-        names[4] = "left_w0";
-        names[5] = "left_w1";
-        names[6] = "left_w2";
+        stretchPose.names.push_back("left_e0");
+        stretchPose.names.push_back("left_e1");
+        stretchPose.names.push_back("left_s0");
+        stretchPose.names.push_back("left_s1");
+        stretchPose.names.push_back("left_w0");
+        stretchPose.names.push_back("left_w1");
+        stretchPose.names.push_back("left_w2");
     }    
     
-    for(int i = 0; i < 7; i++)
-    {
-        //Copies all of the strings in the names array and puts it in the names vectors of the two poses.
-        stretchPose.names.push_back(names[i]);
-        origPose.names.push_back(names[i]);
-    }    
+    origPose.names = stretchPose.names;
 
     //Fill up the command vector for stretchPose.
     //These commands move the arm into a outstretched position

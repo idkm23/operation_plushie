@@ -25,13 +25,8 @@ Pickup::Pickup()
  
     happy_face = cv_bridge::CvImage(std_msgs::Header(), "bgr8", happy_mat).toImageMsg();
     sad_face = cv_bridge::CvImage(std_msgs::Header(), "bgr8", sad_mat).toImageMsg();
-}
 
-void 
-Pickup::begin_detection()
-{
     stage = FINISHED;
-    ros::spin();
 }
 
 /* Main service call-back, starts the pickup process */

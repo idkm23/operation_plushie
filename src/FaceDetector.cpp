@@ -36,13 +36,6 @@ FaceDetector::FaceDetector()
     state = PICKUP;
 }
 
-/* Called by operation_plushie_node.cpp to start the program. */
-void 
-FaceDetector::begin_detection()
-{
-    ros::spin();
-}
-
 /* This updates a variable that stores the state of Baxter's head (position, etc.). */
 void 
 FaceDetector::updateHead(const baxter_core_msgs::HeadState::ConstPtr& msg) {

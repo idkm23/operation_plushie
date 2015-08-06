@@ -1,5 +1,6 @@
 #include "FindBowl.h"
 
+/* Instantiates ROS objects */
 FindBowl::FindBowl()
 {
     bowl_service = nh.advertiseService("bowl_service", &FindBowl::bowl_cb, this); 
@@ -8,17 +9,11 @@ FindBowl::FindBowl()
     stage = FINISHED;
 }
 
-void
-FindBowl::begin_detection()
-{
-    ros::spin();
-}
-
 bool
 FindBowl::bowl_cb(operation_plushie::Ping::Request &req, operation_plushie::Ping::Response &res)
 {
-    stage = SEARCH;
     depth_sub = nh.subscribe ("/camera/depth_registered/points", 1, &FindBowl::cloud_cb, this);
+    stage = SEARCH;
     
     b_x = -1337;
     b_y = -1337;

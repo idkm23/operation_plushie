@@ -53,7 +53,6 @@ private:
 
 public:
     Pickup();
-    void begin_detection();
 
     bool isComplete(operation_plushie::isComplete::Request&, operation_plushie::isComplete::Response&);
 
