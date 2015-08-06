@@ -9,6 +9,7 @@ FindBowl::FindBowl()
     stage = FINISHED;
 }
 
+/* Instantiates the depth camera ROS object and sets up for bowl finding */
 bool
 FindBowl::bowl_cb(operation_plushie::Ping::Request &req, operation_plushie::Ping::Response &res)
 {
@@ -21,11 +22,13 @@ FindBowl::bowl_cb(operation_plushie::Ping::Request &req, operation_plushie::Ping
     return true;
 }
 
+/* Planar & cylindrical segmentation occurs here */
 void
 FindBowl::cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 {
     if(stage == FINISHED)
     {
+        //unsubscribe to the node if we are not using it because the callback clogs the network
         depth_sub.shutdown();
         return;
     }
@@ -114,6 +117,7 @@ FindBowl::cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
     
     if (cloud_cylinder->points.size() < 800) 
         return;
+
     ROS_INFO("size: %ld", cloud_cylinder->points.size());
     PointT cylinder_centroid = calcCentroid(cloud_cylinder);
 
@@ -137,6 +141,7 @@ FindBowl::cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 
 }
 
+/* Calculates the centroid of a pointcloud by averaging the coordinates */
 PointT 
 FindBowl::calcCentroid(pcl::PointCloud<PointT>::Ptr cloud) {
     size_t size = cloud->points.size();
@@ -152,6 +157,7 @@ FindBowl::calcCentroid(pcl::PointCloud<PointT>::Ptr cloud) {
     return PointT(x / size, y / size, z / size);
 }
 
+/* Informs service clients of the bowl's current centroid */
 bool 
 FindBowl::bowl_values_cb(operation_plushie::BowlValues::Request &req, operation_plushie::BowlValues::Response &res) 
 {
