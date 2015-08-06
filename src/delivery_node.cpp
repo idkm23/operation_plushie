@@ -1,3 +1,5 @@
+/* This is launched from operation_plushie.launch to start up the Delivery service. */
+
 #include "Delivery.cpp"
 
 int main(int argc, char **argv)
