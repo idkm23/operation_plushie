@@ -1,10 +1,13 @@
 #include "Pickup.h"
 
+//the various rotations the gripper will use to grab at different angles
 const double Pickup::yawDictionary[] = {0, 3.14 / 4, 3.14 / 2, 3 * 3.14 / 4};
 
+//HSV values to find a plush robot
 const int Pickup::iLowH = 80, Pickup::iHighH = 179, Pickup::iLowS = 0, 
           Pickup::iHighS = 255, Pickup::iLowV = 240, Pickup::iHighV = 255;
 
+/* Initializes ros objects and happy/sad images */
 Pickup::Pickup() 
 {
     pickup_service = n.advertiseService("pickup_service", &Pickup::grabPlushie, this);
@@ -22,19 +25,18 @@ Pickup::Pickup()
  
     happy_face = cv_bridge::CvImage(std_msgs::Header(), "bgr8", happy_mat).toImageMsg();
     sad_face = cv_bridge::CvImage(std_msgs::Header(), "bgr8", sad_mat).toImageMsg();
-
-    x = 0.6;
-    y = 0.5;
-    z = 0.15;
 }
 
-void Pickup::begin_detection()
+void 
+Pickup::begin_detection()
 {
     stage = FINISHED;
     ros::spin();
 }
 
-bool Pickup::grabPlushie(operation_plushie::Pickup::Request &req, operation_plushie::Pickup::Response &res)
+/* Main service call-back, starts the pickup process */
+bool 
+Pickup::grabPlushie(operation_plushie::Pickup::Request &req, operation_plushie::Pickup::Response &res)
 {
     isLeft = req.isLeft;
     
@@ -50,9 +52,6 @@ bool Pickup::grabPlushie(operation_plushie::Pickup::Request &req, operation_plus
     endstate_sub = n.subscribe<baxter_core_msgs::EndpointState>(
         std::string("/robot/limb/") + (isLeft ? "left" : "right") + "/endpoint_state", 10, &Pickup::updateEndpoint, this);
 
-    ir_sensor_sub = n.subscribe<sensor_msgs::Range>(
-        std::string("/robot/range/") + (isLeft ? "left" : "right") + "_hand_range/state", 10, &Pickup::updateIrSensor, this);
-    
     is_holding_sub = n.subscribe<baxter_core_msgs::EndEffectorState>(
         std::string("/robot/end_effector/") + (isLeft ? "left" : "right") + "_gripper/state", 10, &Pickup::updateEndEffectorState, this);
 
@@ -66,31 +65,35 @@ bool Pickup::grabPlushie(operation_plushie::Pickup::Request &req, operation_plus
     return true;
 }   
 
-void Pickup::chooseStage(const sensor_msgs::ImageConstPtr& msg)
+/* Dictates what function is called depending on which stage */
+void 
+Pickup::chooseStage(const sensor_msgs::ImageConstPtr& msg)
 {
     switch(stage)
     {
-    case TOBOWL:
-        moveAboveBowl();
-        break;
-    case INITIALIZING:
-        setupHand();
-        break;
-    case CENTERING:
-        getHandImage(msg);
-        break;
-    case LOWERING:
-        lowerArm();
-        break;
-    case RETURNING:
-        fetchNRaise(); 
-        break;
-    case FINISHED:
-        return;    
+        case TOBOWL:
+            moveAboveBowl();
+            break;
+        case INITIALIZING:
+            setupHand();
+            break;
+        case CENTERING:
+            getHandImage(msg);
+            break;
+        case LOWERING:
+            lowerArm();
+            break;
+        case RETURNING:
+            fetchNRaise(); 
+            break;
+        case FINISHED:
+            return;    
     }
 }
 
-void Pickup::getHandImage(const sensor_msgs::ImageConstPtr& msg)
+/* Using the hand camera, image thresholding is applied for visual servoing */
+void 
+Pickup::getHandImage(const sensor_msgs::ImageConstPtr& msg)
 {
     cv_bridge::CvImagePtr cv_ptr_cam;
 
@@ -145,9 +148,6 @@ void Pickup::getHandImage(const sensor_msgs::ImageConstPtr& msg)
         //Center of screen and center of proper color
         cv::ellipse(imgThresholded, cv::Point(imgThresholded.cols/2 + XTRANS, imgThresholded.rows/2 + YTRANS), cv::Size(10, 10), 360, 0, 360, cv::Scalar(255, 0, 0), 3, 8);
         cv::ellipse( imgThresholded, cv::Point(posX, posY), cv::Size(10, 10), 360, 0, 360, cv::Scalar(100, 100, 255), 5, 8);
-
-       // sensor_msgs::ImagePtr xdisplay_img = cv_bridge::CvImage(std_msgs::Header(), "bgr8", imgThresholded).toImageMsg();
-       // xdisplay_pub.publish(xdisplay_img);
         
         cv::imshow("Thresh", imgThresholded);
         
@@ -156,14 +156,17 @@ void Pickup::getHandImage(const sensor_msgs::ImageConstPtr& msg)
     }
     else
     {
-        if(++no_sign_of_plushies > 40)
+        if(++no_sign_of_plushies > 20)
         {
+            no_sign_of_plushies = 0;
             moveAboveBowl();
         }
     }
 }
 
-void Pickup::moveAboveBowl() 
+/* Moves Baxter's arm above the centroid of the bowl with the help of the FindBowl service */
+void 
+Pickup::moveAboveBowl() 
 {
     if(isHolding) {
         stage = FINISHED;
@@ -226,8 +229,10 @@ void Pickup::moveAboveBowl()
     stage = INITIALIZING;
 }
 
+/* Moves arm into a specific pose with the position_joints service to move it out of the point cloud */
 //TODO: make this functional for both arms
-void Pickup::moveOutOfDepthCloud()
+void 
+Pickup::moveOutOfDepthCloud()
 {
     operation_plushie::PositionJoints srv;
 
@@ -264,13 +269,14 @@ void Pickup::moveOutOfDepthCloud()
     } while(!srv_progress.response.isComplete);
 }
 
-void Pickup::moveArm(int y_shift, int x_shift)
+/* Moves arm based off of information gathered from visual servoing */
+void 
+Pickup::moveArm(int y_shift, int x_shift)
 {
     const int CENT_VAL = 10;   
 
     if(abs(x_shift) < CENT_VAL && abs(y_shift) < CENT_VAL)
     {
-        ROS_INFO("CENTERED");
         stage = LOWERING;
         lowering_x = x;
         lowering_y = y;
@@ -317,8 +323,15 @@ void Pickup::moveArm(int y_shift, int x_shift)
     sleepUntilDone();
 }
 
-bool Pickup::stepDown(double __x, double __y)
+/* Moves arm by a small amount downwards from a specific x and y coordinate */
+bool 
+Pickup::stepDown(double __x, double __y)
 {
+
+    //We do not use srv.request.x = x for a good reason
+    //Because Baxter's movements are not precise, his x and y change if he moves down
+    //Before stepping down, you must save the desired x and y and reuse those coordinates rather than grabbing the location of Baxter's hand after
+    //every iteration, otherwise he will go downwards diagonally/randomly
     operation_plushie::RepositionHand srv;
     srv.request.x = __x;
     srv.request.y = __y;
@@ -337,7 +350,9 @@ bool Pickup::stepDown(double __x, double __y)
     return sleepUntilDone(); 
 }
 
-bool Pickup::sleepUntilDone()
+/* Function that suspends the thread until the reposition service has finished moving the arm into place */
+bool 
+Pickup::sleepUntilDone()
 {
     operation_plushie::isComplete srv;
     while(!srv.response.isComplete)
@@ -348,15 +363,19 @@ bool Pickup::sleepUntilDone()
     return srv.response.isStuck;
 }
 
-void Pickup::lowerArm()
+/* Uses the stepDown function to move down, if stepDown returns true then the process has completed */
+void 
+Pickup::lowerArm()
 {
-    if(stepDown(lowering_x, lowering_y))// && ir_sensor > 0.1175f);
+    if(stepDown(lowering_x, lowering_y))
     {
         stage = RETURNING;
     }
 }
 
-void Pickup::fetchNRaise()
+/* Assumes to be at the bottom of a bowl, closes grippers, and raises to z=.15 */
+void 
+Pickup::fetchNRaise()
 {
     baxter_core_msgs::EndEffectorCommand hand_command;
     hand_command.id = 65538;
@@ -388,8 +407,11 @@ void Pickup::fetchNRaise()
     stage = INITIALIZING;
 }
 
-void Pickup::setupHand()
+/* Calibrates and releases the grippers if they were closed */
+void 
+Pickup::setupHand()
 {
+    //yes, this is supposed to be the assignment operator
     if(missedLast = !isHolding)
     {
         baxter_core_msgs::EndEffectorCommand hand_command;
@@ -409,29 +431,32 @@ void Pickup::setupHand()
     }
 }
 
-void Pickup::updateEndpoint(baxter_core_msgs::EndpointState eps)
+/* Fetches data from the end effector to find the position of the gripper */
+void 
+Pickup::updateEndpoint(baxter_core_msgs::EndpointState eps)
 {
     x = eps.pose.position.x;
     y = eps.pose.position.y;
     z = eps.pose.position.z;
 }
 
-void Pickup::updateIrSensor(sensor_msgs::Range ir_sensor__)
-{
-    ir_sensor = ir_sensor__.range;
-}
-
-void Pickup::updateEndEffectorState(baxter_core_msgs::EndEffectorState ees)
+/* Fetches data for isHolding */
+void 
+Pickup::updateEndEffectorState(baxter_core_msgs::EndEffectorState ees)
 {
     isHolding = ees.gripping;
 }
 
-void Pickup::updateOKButtonState(baxter_core_msgs::DigitalIOState ok)
+/* Fetches button data */
+void 
+Pickup::updateOKButtonState(baxter_core_msgs::DigitalIOState ok)
 {
     isPressed = ok.state;
 }
 
-bool Pickup::isComplete(operation_plushie::isComplete::Request &req, operation_plushie::isComplete::Response &res) 
+/* Informs ServiceClients of the Pickup node's progress */
+bool 
+Pickup::isComplete(operation_plushie::isComplete::Request &req, operation_plushie::isComplete::Response &res) 
 {
     res.isComplete = (stage == FINISHED);
     return true;
