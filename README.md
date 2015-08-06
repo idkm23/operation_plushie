@@ -11,7 +11,7 @@ Important!
 =====
 The following instructions are meant to be used on the robot-lab5 and leviathan computers, with the Xtion Pro plugged into the leviathan. This is also assuming that all of the packages are still on those computers. If this is not the case, see below for more details.
 
-This program is also currently set up to use Baxter's left arm, though hardcoded values can be adjusted to use its right arm.
+This program is also currently set up to use Baxter's left arm. Although some hardcoded values can be adjusted to use its right arm, it would be better to set it up so that Baxter is ambidexterous when performing this task. 
 
 Directions
 =====
