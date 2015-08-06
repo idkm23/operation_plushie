@@ -28,7 +28,7 @@ private:
     Stage state;
     baxter_core_msgs::JointCommand stretchPose, origPose;
     std::vector<double> current_arm_positions;
-    bool isRight, isPressed, isHolding, origStored;
+    bool isLeft, isPressed, isHolding, origStored;
 
 public:
     Delivery();

@@ -48,7 +48,7 @@ void Delivery::storeJointStates(sensor_msgs::JointState msg)
 
     /* WARNING: assumes there are 7 left joints before the right joints in the msg.position vector
        we are finding the joints from the JointState msg through some assumption */
-    int index_space = (isRight ? 7 : 0);
+    int index_space = (isLeft ? 0 : 7);
     
     std::vector<double>::const_iterator first = msg.position.begin() + left_e0Index + index_space;
     std::vector<double>::const_iterator last = msg.position.begin() + left_e0Index + index_space + 7;
@@ -83,17 +83,17 @@ void Delivery::selectState()
 bool Delivery::deliver(operation_plushie::Deliver::Request &req, operation_plushie::Deliver::Response &res)
 {
     // TODO: make this not left-hand dominant 
-    isRight = false;
+    isLeft = true;
     
     //Perhaps bad practice, we create ros objects for each delivery to allow for left and right arms to be used
     gripper_pub = n.advertise<baxter_core_msgs::EndEffectorCommand>(
-        std::string("/robot/end_effector/") + (isRight?"right":"left") + "_gripper/command", 1000);
+        std::string("/robot/end_effector/") + (isLeft ? "left" : "right") + "_gripper/command", 1000);
 
     button_sub = n.subscribe<baxter_core_msgs::DigitalIOState>(
-        std::string("/robot/digital_io/") + (isRight ? "right" : "left") + "_itb_button0/state", 10, &Delivery::updateButtonState, this);
+        std::string("/robot/digital_io/") + (isLeft ? "left" : "right") + "_itb_button0/state", 10, &Delivery::updateButtonState, this);
 
     is_holding_sub = n.subscribe<baxter_core_msgs::EndEffectorState>(
-        std::string("/robot/end_effector/") + (isRight ? "right" : "left") + "_gripper/state", 10, &Delivery::updateEndEffectorState, this);
+        std::string("/robot/end_effector/") + (isLeft ? "left" : "right") + "_gripper/state", 10, &Delivery::updateEndEffectorState, this);
 
     //empty any old values left in the vector
     stretchPose.names.clear();
@@ -102,19 +102,7 @@ bool Delivery::deliver(operation_plushie::Deliver::Request &req, operation_plush
     origPose.command.clear();
  
     //Fills up the names array that corresponds in a dictionary fashion with the command vector.
-    if(isRight)
-    {
-        armPose_pub = n.advertise<baxter_core_msgs::JointCommand>("/robot/limb/right/joint_command", 1000);
-
-        stretchPose.names.push_back("right_e0");
-        stretchPose.names.push_back("right_e1");
-        stretchPose.names.push_back("right_s0");
-        stretchPose.names.push_back("right_s1");
-        stretchPose.names.push_back("right_w0");
-        stretchPose.names.push_back("right_w1");
-        stretchPose.names.push_back("right_w2");
-    }
-    else 
+    if(isLeft)
     {
         armPose_pub = n.advertise<baxter_core_msgs::JointCommand>("/robot/limb/left/joint_command", 1000);
 
@@ -125,6 +113,18 @@ bool Delivery::deliver(operation_plushie::Deliver::Request &req, operation_plush
         stretchPose.names.push_back("left_w0");
         stretchPose.names.push_back("left_w1");
         stretchPose.names.push_back("left_w2");
+    }
+    else 
+    {
+        armPose_pub = n.advertise<baxter_core_msgs::JointCommand>("/robot/limb/right/joint_command", 1000);
+
+        stretchPose.names.push_back("right_e0");
+        stretchPose.names.push_back("right_e1");
+        stretchPose.names.push_back("right_s0");
+        stretchPose.names.push_back("right_s1");
+        stretchPose.names.push_back("right_w0");
+        stretchPose.names.push_back("right_w1");
+        stretchPose.names.push_back("right_w2");
     }    
     
     origPose.names = stretchPose.names;

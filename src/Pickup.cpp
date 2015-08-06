@@ -19,6 +19,8 @@ Pickup::Pickup()
     bowl_values_client = n.serviceClient<operation_plushie::BowlValues>("bowl_values_service");
     position_joints_progress = n.serviceClient<operation_plushie::isComplete>("position_joints_progress");
     position_joints_client = n.serviceClient<operation_plushie::PositionJoints>("position_joints_service");
+    open_camera_client = n.serviceClient<baxter_core_msgs::OpenCamera>("/cameras/open");
+    close_camera_client = n.serviceClient<baxter_core_msgs::CloseCamera>("/cameras/close");
 
     cv::Mat happy_mat = cv::imread("../../../src/operation_plushie/res/happy.jpg", CV_LOAD_IMAGE_COLOR),
             sad_mat = cv::imread("../../../src/operation_plushie/res/sad.jpg", CV_LOAD_IMAGE_COLOR);
@@ -120,7 +122,6 @@ Pickup::getHandImage(const sensor_msgs::ImageConstPtr& msg)
     cv::dilate( imgThresholded, imgThresholded, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5)) );
     cv::erode(imgThresholded, imgThresholded, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5)) );
 
-
     cv::imshow("Original", cv_ptr_cam->image);    
     cv::waitKey(5);    
 
@@ -169,6 +170,9 @@ Pickup::moveAboveBowl()
         return;
     }
     moveOutOfDepthCloud();
+    isLeft = !isLeft;
+    moveOutOfDepthCloud();
+    isLeft = !isLeft;
 
     operation_plushie::BowlValues srv_values;
     operation_plushie::Ping srv_ping;
@@ -223,13 +227,36 @@ Pickup::moveAboveBowl()
 
     } while(sleepUntilDone());
 
+/*
+    Close opposite hand camera
+    Open selected hand camera
+*/
+
+    baxter_core_msgs::CloseCamera c_srv;
+    baxter_core_msgs::OpenCamera o_srv;
+
+    c_srv.request.name = (isLeft ? "right_hand_camera" : "left_hand_camera");
+    o_srv.request.name = (isLeft ? "left_hand_camera" : "right_hand_camera");
+    o_srv.request.settings.width = 640;
+    o_srv.request.settings.height = 400;
+    o_srv.request.settings.fps = 20;
+
+    if(!close_camera_client.call(c_srv))
+    {
+        ROS_ERROR("failed to contact close_camera_client");
+    }
+
+    if(!open_camera_client.call(o_srv))    
+    {
+        ROS_ERROR("failed to contact open_camera_client");
+    }
+
     xdisplay_pub.publish(happy_face);
 
     stage = INITIALIZING;
 }
 
 /* Moves arm into a specific pose with the position_joints service to move it out of the point cloud */
-//TODO: Check the right arm positions to see if they work.
 void 
 Pickup::moveOutOfDepthCloud()
 {

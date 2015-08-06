@@ -1,6 +1,6 @@
 /* This header file provides function headers for Pickup.cpp. */
 
-#include "ros/ros.h"
+#include <ros/ros.h>
 
 #include "operation_plushie/Pickup.h"
 #include "operation_plushie/RepositionHand.h"
@@ -20,14 +20,18 @@
 #include <sensor_msgs/JointState.h>
 
 //Image processing
-#include "sensor_msgs/Image.h"
+#include <sensor_msgs/Image.h>
 #include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/image_encodings.h>
-#include "opencv2/highgui/highgui.hpp"
-#include "opencv2/imgproc/imgproc.hpp"
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
 
 //for button
-#include "baxter_core_msgs/DigitalIOState.h"
+#include <baxter_core_msgs/DigitalIOState.h>
+
+//baxter cameras
+#include <baxter_core_msgs/OpenCamera.h>
+#include <baxter_core_msgs/CloseCamera.h>
 
 #include <pthread.h>
 
@@ -38,7 +42,7 @@ class Pickup
 private:
     ros::NodeHandle n;
     ros::ServiceServer pickup_service, isComplete_service;
-    ros::ServiceClient reposition_hand_client, reposition_progress_client, bowl_client, bowl_values_client, position_joints_client, position_joints_progress;
+    ros::ServiceClient reposition_hand_client, reposition_progress_client, bowl_client, bowl_values_client, position_joints_client, position_joints_progress, close_camera_client, open_camera_client;
     ros::Publisher arm_pub, xdisplay_pub, gripper_pub;
     ros::Subscriber raw_image, endstate_sub, is_holding_sub, ok_button_sub;
     bool isCentered, isLeft, isHolding, isPressed, missedLast;
