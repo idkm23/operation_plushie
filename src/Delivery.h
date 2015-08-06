@@ -1,3 +1,5 @@
+/* This header file provides function headers for Delivery.cpp. */
+
 #include "ros/ros.h"
 #include "sensor_msgs/JointState.h"
 #include "baxter_core_msgs/JointCommand.h"

@@ -1,3 +1,5 @@
+/* This header file provides function headers for Pickup.cpp. */
+
 #include "ros/ros.h"
 
 #include "operation_plushie/Pickup.h"

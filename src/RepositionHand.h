@@ -1,3 +1,5 @@
+/* This header file provides function headers for RepositionHand.cpp. */
+
 #include <ros/ros.h>
 #include <baxter_core_msgs/SolvePositionIK.h>
 #include <baxter_core_msgs/EndpointState.h>

@@ -1,3 +1,5 @@
+/* Launched from operation_plushie.launch. Starts the FindBowl service. */
+
 #include "FindBowl.cpp"
 
 int 

@@ -1,3 +1,5 @@
+/* This header file provides function headers for FaceDetector.cpp. */
+
 #include <ros/ros.h>
 #include "operation_plushie/Pickup.h"
 #include "operation_plushie/Deliver.h"

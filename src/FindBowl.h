@@ -1,3 +1,5 @@
+/* This header file provides function headers for FindBowl.cpp. */
+
 #include <ros/ros.h>
 
 #include <sensor_msgs/PointCloud2.h>

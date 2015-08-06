@@ -1,6 +1,8 @@
+/* This program is used to deliver the plush toy to the person by stretching its arm out in the direction that its head is facing. It will then return to its original pose. */
+
 #include "Delivery.h"
 
-//assumed order of joint positions: e0 e1 s0 s1 w0 w1 w2
+//Assumed order of joint positions: e0 e1 s0 s1 w0 w1 w2
 
 /*instantiates ros objects*/
 Delivery::Delivery() : loop_rate(10) {
@@ -11,18 +13,19 @@ Delivery::Delivery() : loop_rate(10) {
     state = FINISHED;
 }
 
+/* Starts everything. */
 void Delivery::beginDetection() {
     ros::spin();
 }
 
-/* Basically the heart of the delivery node */
+/* Basically the heart of the delivery node. */
 void Delivery::callback(sensor_msgs::JointState msg)
 {
     //will not make a delivery until activated by a serviceClient
     if(state == FINISHED)
         return;
 
-    //once passed the if, baxter will make a delivery
+    //once past the if, Baxter will make a delivery
     storeJointStates(msg); 
 
     selectState();
@@ -31,6 +34,7 @@ void Delivery::callback(sensor_msgs::JointState msg)
 void Delivery::storeJointStates(sensor_msgs::JointState msg)
 {
     int left_e0Index = -999;
+    //Search for "left_e0" in the array of joint names.
     for(int i = 0; i < msg.name.size(); i++)
     {
         if(strcmp(msg.name[i].c_str(), "left_e0") == 0)
@@ -40,13 +44,14 @@ void Delivery::storeJointStates(sensor_msgs::JointState msg)
         }
     }
 
+    //If left_e0Index is still the rogue value, then it didn't find left_e0.
     if(left_e0Index == -999)
     {
         ROS_ERROR("left_e0 not found.\n");
         exit(1);
     }
 
-    /* WARNING: assumes there are 7 left joints before there the right joints in the msg.position vector
+    /* WARNING: assumes there are 7 left joints before the right joints in the msg.position vector
        we are finding the joints from the JointState msg through some assumption */
     int index_space = (isRight ? 7 : 0);
     
@@ -104,6 +109,7 @@ bool Delivery::deliver(operation_plushie::Deliver::Request &req, operation_plush
     stretchPose.command.clear();
     origPose.command.clear();
  
+    //Fills up the names array that corresponds in a dictionary fashion with the command vector.
     if(isRight)
     {
         armPose_pub = n.advertise<baxter_core_msgs::JointCommand>("/robot/limb/right/joint_command", 1000);
@@ -131,11 +137,13 @@ bool Delivery::deliver(operation_plushie::Deliver::Request &req, operation_plush
     
     for(int i = 0; i < 7; i++)
     {
+        //Copies all of the strings in the names array and puts it in the names vectors of the two poses.
         stretchPose.names.push_back(names[i]);
         origPose.names.push_back(names[i]);
     }    
 
-    //Move the arm into a outstretched position
+    //Fill up the command vector for stretchPose.
+    //These commands move the arm into a outstretched position
     stretchPose.command.push_back(-1.5);
     stretchPose.command.push_back(0.2);
     stretchPose.command.push_back(getArmPos(req.headPos));
@@ -144,6 +152,7 @@ bool Delivery::deliver(operation_plushie::Deliver::Request &req, operation_plush
     stretchPose.command.push_back(0.3);
     stretchPose.command.push_back(0);
 
+    //Sets both poses to position mode.
     stretchPose.mode = 1; 
     origPose.mode = 1;
    
@@ -159,6 +168,7 @@ bool Delivery::deliver(operation_plushie::Deliver::Request &req, operation_plush
 /* Calculates where the arm should be relative to the head pan */
 double Delivery::getArmPos(double headPos)
 {
+    //TODO: This assumes were using the left arm. Try to make it ambidexterous!
     if(headPos < 0)
         return -0.8;
     

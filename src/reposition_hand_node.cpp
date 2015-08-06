@@ -1,3 +1,5 @@
+/* Launched from operation_plushie.launch. Starts the RepositionHand service. */
+
 #include "RepositionHand.cpp"
 
 int main(int argc, char **argv)
