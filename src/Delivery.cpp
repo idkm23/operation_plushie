@@ -1,3 +1,5 @@
+/* This program is used to deliver the plush toy to the person by stretching its arm out in the direction that its head is facing. It will then return to its original pose. */
+
 #include "Delivery.h"
 
 //Assumed order of joint positions: e0 e1 s0 s1 w0 w1 w2
