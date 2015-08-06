@@ -2,6 +2,7 @@
 
 #include "FaceDetector.h"
 
+/* instantiates ros objects and face images */
 FaceDetector::FaceDetector() 
 {
     xdisplay_pub = n.advertise<sensor_msgs::Image>("/robot/xdisplay", 1000),
@@ -85,33 +86,40 @@ FaceDetector::detectAndDisplay(cv::Mat frame)
     
     decrementConsistentRects();    
 
-    int best_index = findBestIndex(frame);
+    int best_index = findBestIndex(frame), 
+        fromCenter = 1000;
 
-    tickFaceCount(best_index, confirmed_faces.size(), frame); 
+    if(confirmed_faces.size())
+        fromCenter = consistent_rects[best_index].rect.x 
+                     - consistent_rects[best_index].rect.width/2 - frame.cols/2; 
 
-    int fromCenter = 1000; 
-    if(!head_state.isPanning && confirmed_faces.size())
-    {
-        fromCenter = consistent_rects[best_index].rect.x - consistent_rects[best_index].rect.width/2 - frame.cols/2; 
-        if(fromCenter > 50 || fromCenter < -50)
-        {
-            baxter_core_msgs::HeadPanCommand msg;
-	        msg.speed = 25;
-	        msg.target = head_state.pan + (fromCenter > 0 ? -.1 : .1);
-    	    monitor_pub.publish(msg);
-        }
-    } 
+    tickFaceCount(fromCenter, confirmed_faces.size(), frame); 
     
     if(no_face_count > 0)
         //Display angry face if he hasn't seen a face for any period of time.
         xdisplay_pub.publish(lemon_face);
-    else if(fromCenter > 50 || fromCenter < -50)
+    else if(abs(fromCenter) > 50)
         //Display unsure face if he sees an uncentered face.
         xdisplay_pub.publish(unsure_face);
     else
         //Display happy face if he sees a centered face.
         xdisplay_pub.publish(happy_face);
 
+    if(!head_state.isPanning && confirmed_faces.size())
+    {
+        if(abs(fromCenter) > 50)
+        {
+            baxter_core_msgs::HeadPanCommand msg;
+	        msg.speed = 25;
+	        msg.target = head_state.pan + (fromCenter > 0 ? -.1 : .1);
+    	    monitor_pub.publish(msg);
+        } 
+        else if(no_face_count <= -1)
+        {
+            deliver();
+        }
+    } 
+    
     //Displays the camera feed with the face detection overlay on the computer screen.
     cv::imshow("Face Detector", frame);
     cv::waitKey(10);
@@ -220,21 +228,20 @@ FaceDetector::findBestIndex(cv::Mat frame)
     return best_index;
 }
 
+/* Ticks no_face_count depending on whether there is a face on the screen or not */
+/* It counts like this, if it is  */ 
 void 
-FaceDetector::tickFaceCount(int best_index, int confirmed_size, cv::Mat frame) {
+FaceDetector::tickFaceCount(int fromCenter, int confirmed_size, cv::Mat frame) {
     const int FACE_COUNT = 5;    
 
+    //if there is atleast one confirmed face on the screen
     if(confirmed_size)
     {
-        int fromCenter 
-            = consistent_rects[best_index].rect.x - consistent_rects[best_index].rect.width/2 - frame.cols/2;
-        
         if(no_face_count <= -1)
         { 
             if(fromCenter < 50 && fromCenter > -50) 
             {
                 no_face_count = -FACE_COUNT;
-                deliver();    
             } 
             else
             {
@@ -257,6 +264,8 @@ FaceDetector::tickFaceCount(int best_index, int confirmed_size, cv::Mat frame) {
     }   
 }
 
+/* Sorts faces that have a proper color and do not have a proper color for further consistent rect filtering 
+   draws blue and black circles */
 std::vector<cv::Rect> 
 FaceDetector::findConfirmedFaces(std::vector<cv::Rect> raw_faces, cv::Mat frame)
 {

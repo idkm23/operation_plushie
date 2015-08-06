@@ -65,7 +65,8 @@ Pickup::grabPlushie(operation_plushie::Pickup::Request &req, operation_plushie::
     return true;
 }   
 
-/* Dictates what function is called depending on which stage */
+/* The hand camera's callback function */
+/* Dictates what function is called depending on which stage the pickup process is currently on */
 void 
 Pickup::chooseStage(const sensor_msgs::ImageConstPtr& msg)
 {
