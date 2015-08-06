@@ -35,8 +35,23 @@ Pickup::Pickup()
 bool 
 Pickup::grabPlushie(operation_plushie::Pickup::Request &req, operation_plushie::Pickup::Response &res)
 {
-    isLeft = req.isLeft;
-    
+    if(req.isFirst)
+    {
+        isLeft = true;
+        instantiateDirectionalROS();        
+    }
+    yaw_index = -1;
+    no_sign_of_plushies = 0;
+    stage = TOBOWL;
+        
+    return true;
+}   
+
+void
+Pickup::instantiateDirectionalROS()
+{
+    openCurrentCamera();
+
     arm_pub = n.advertise<baxter_core_msgs::JointCommand>(
         std::string("/robot/limb/") + (isLeft?"left":"right") + "/joint_command", 1000);
     
@@ -54,13 +69,7 @@ Pickup::grabPlushie(operation_plushie::Pickup::Request &req, operation_plushie::
 
     ok_button_sub = n.subscribe<baxter_core_msgs::DigitalIOState>(
         std::string("/robot/digital_io/") + (isLeft ? "left" : "right") + "_itb_button0/state", 10, &Pickup::updateOKButtonState, this);
-    
-    yaw_index = -1;
-    no_sign_of_plushies = 0;
-    stage = TOBOWL;
-        
-    return true;
-}   
+}
 
 /* The hand camera's callback function */
 /* Dictates what function is called depending on which stage the pickup process is currently on */
@@ -177,37 +186,40 @@ Pickup::moveAboveBowl()
     operation_plushie::BowlValues srv_values;
     operation_plushie::Ping srv_ping;
 
-    bool cant_reach = false;   
+    int cant_reach = 0;   
     do { 
 
         if(cant_reach)
-        {
-            xdisplay_pub.publish(sad_face);
             isLeft= !isLeft;
-        }
-
-        if(!bowl_client.call(srv_ping))
-        {
-            ROS_ERROR("Cannot contact bowl_service");           
-        }
         
-        int timeout = 0;
-        do {
+        if(cant_reach > 1)
+                xdisplay_pub.publish(sad_face);
 
-            if(!bowl_values_client.call(srv_values))
+        if(cant_reach % 2 == 0)
+        {
+            if(!bowl_client.call(srv_ping))
             {
-                ROS_ERROR("Cannot contact bowl_values_service");
-            } 
-        
-            timeout++;
-        } while(srv_values.response.x == -1337 && timeout < 2500);
+                ROS_ERROR("Cannot contact bowl_service");           
+            }
+            
+            int timeout = 0;
+            do {
 
-        if(timeout >= 2500) 
-        {
-            ROS_INFO("Bowl_values_service timed out");    
-            return;
+                if(!bowl_values_client.call(srv_values))
+                {
+                    ROS_ERROR("Cannot contact bowl_values_service");
+                } 
+            
+                timeout++;
+            } while(srv_values.response.x == -1337 && timeout < 2500);
+
+            if(timeout >= 2500) 
+            {
+                ROS_INFO("Bowl_values_service timed out");    
+                return;
+            }
         }
-        
+
         operation_plushie::RepositionHand srv;
 
         srv.request.x = srv_values.response.x; 
@@ -223,15 +235,20 @@ Pickup::moveAboveBowl()
             return;
         } 
 
-        cant_reach = true;
-
+        cant_reach++;
     } while(sleepUntilDone());
 
-/*
-    Close opposite hand camera
-    Open selected hand camera
-*/
+    if(cant_reach > 1 && cant_reach % 2 == 0)
+        instantiateDirectionalROS();
+    
+    xdisplay_pub.publish(happy_face);
 
+    stage = INITIALIZING;
+}
+
+void
+Pickup::openCurrentCamera()
+{
     baxter_core_msgs::CloseCamera c_srv;
     baxter_core_msgs::OpenCamera o_srv;
 
@@ -250,10 +267,6 @@ Pickup::moveAboveBowl()
     {
         ROS_ERROR("failed to contact open_camera_client");
     }
-
-    xdisplay_pub.publish(happy_face);
-
-    stage = INITIALIZING;
 }
 
 /* Moves arm into a specific pose with the position_joints service to move it out of the point cloud */
@@ -506,5 +519,6 @@ bool
 Pickup::isComplete(operation_plushie::isComplete::Request &req, operation_plushie::isComplete::Response &res) 
 {
     res.isComplete = (stage == FINISHED);
+    res.isLeft = isLeft;
     return true;
 }

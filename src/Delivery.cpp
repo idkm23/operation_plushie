@@ -14,7 +14,8 @@ Delivery::Delivery() : loop_rate(10) {
 }
 
 /* Basically the heart of the delivery node. */
-void Delivery::callback(sensor_msgs::JointState msg)
+void 
+Delivery::callback(sensor_msgs::JointState msg)
 {
     //will not make a delivery until activated by a serviceClient
     if(state == FINISHED)
@@ -26,7 +27,8 @@ void Delivery::callback(sensor_msgs::JointState msg)
     selectState();
 }
 
-void Delivery::storeJointStates(sensor_msgs::JointState msg)
+void 
+Delivery::storeJointStates(sensor_msgs::JointState msg)
 {
     int left_e0Index = -999;
     //Search for "left_e0" in the array of joint names.
@@ -62,7 +64,8 @@ void Delivery::storeJointStates(sensor_msgs::JointState msg)
 }
 
 /* With the 'state' instance variable, we select which task is next in the delivery process using enums */
-void Delivery::selectState()
+void 
+Delivery::selectState()
 {    
     switch(state)
     {
@@ -80,10 +83,10 @@ void Delivery::selectState()
 
 
 /* The function that begins the delivery process */
-bool Delivery::deliver(operation_plushie::Deliver::Request &req, operation_plushie::Deliver::Response &res)
+bool 
+Delivery::deliver(operation_plushie::Deliver::Request &req, operation_plushie::Deliver::Response &res)
 {
-    // TODO: make this not left-hand dominant 
-    isLeft = true;
+    isLeft = req.isLeft;
     
     //Perhaps bad practice, we create ros objects for each delivery to allow for left and right arms to be used
     gripper_pub = n.advertise<baxter_core_msgs::EndEffectorCommand>(
@@ -153,17 +156,20 @@ bool Delivery::deliver(operation_plushie::Deliver::Request &req, operation_plush
 }
 
 /* Calculates where the arm should be relative to the head pan */
-double Delivery::getArmPos(double headPos)
+double 
+Delivery::getArmPos(double headPos)
 {
-    //TODO: This assumes were using the left arm. Try to make it ambidexterous!
-    if(headPos < 0)
+    if(isLeft && headPos < 0)
         return -0.8;
-    
-    return headPos + (headPos >= 0 ? -0.8 : 0.8);
+    else if(!isLeft && headPos > 0)
+        return 0.8;
+    else
+        return headPos + (isLeft ? -0.8 : 0.8);
 }
 
 /* Moves arm into the outstretched pose until it is positioned */
-void Delivery::stretch()
+void 
+Delivery::stretch()
 {
     if(isCorrectPosition(stretchPose))
         state = RELEASING;
@@ -173,7 +179,8 @@ void Delivery::stretch()
 
 /* Baxter waits in this stage until he is either not holding the object, or his arm button is pressed 
    he then releases his grip */
-void Delivery::release()
+void 
+Delivery::release()
 {
     if(!isHolding || isPressed)
     {
@@ -189,7 +196,8 @@ void Delivery::release()
 }
 
 /* Same concept as stretch() */
-void Delivery::returning()
+void 
+Delivery::returning()
 {
     if(isCorrectPosition(origPose))
         state = FINISHED;
@@ -198,7 +206,8 @@ void Delivery::returning()
 }
 
 /* determines if the robot's current state matches the JointCommand 'msg' */
-bool Delivery::isCorrectPosition(baxter_core_msgs::JointCommand msg)
+bool 
+Delivery::isCorrectPosition(baxter_core_msgs::JointCommand msg)
 {
     for(int i = 0; i < current_arm_positions.size(); i++) 
     {
@@ -210,7 +219,8 @@ bool Delivery::isCorrectPosition(baxter_core_msgs::JointCommand msg)
 }
 
 /* Constantly checking button state. Sets isPressed permanently to true if the button is pressed (permanence for each delivery) */
-void Delivery::updateButtonState(baxter_core_msgs::DigitalIOState ok)
+void 
+Delivery::updateButtonState(baxter_core_msgs::DigitalIOState ok)
 {
     if(ok.state)
         isPressed = true;
@@ -218,14 +228,16 @@ void Delivery::updateButtonState(baxter_core_msgs::DigitalIOState ok)
 
 /* Sevice that updates other nodes with the progress of the delivery
    Once the delivery is complete other nodes can move to the next step e.g. face tracking, or picking up a plushie, etc. */
-bool Delivery::isComplete(operation_plushie::isComplete::Request &req, operation_plushie::isComplete::Response &res) 
+bool 
+Delivery::isComplete(operation_plushie::isComplete::Request &req, operation_plushie::isComplete::Response &res) 
 {
     res.isComplete = (state == FINISHED);
     return true;
 }
 
 /* Simple function to check if Baxter is gripping an object */
-void Delivery::updateEndEffectorState(baxter_core_msgs::EndEffectorState ees)
+void 
+Delivery::updateEndEffectorState(baxter_core_msgs::EndEffectorState ees)
 {
     isHolding = ees.gripping;
 }

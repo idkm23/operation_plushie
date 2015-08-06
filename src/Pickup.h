@@ -57,6 +57,8 @@ private:
 
 public:
     Pickup();
+    void openCurrentCamera();
+    void instantiateDirectionalROS();
 
     bool isComplete(operation_plushie::isComplete::Request&, operation_plushie::isComplete::Response&);
 

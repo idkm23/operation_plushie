@@ -39,6 +39,8 @@ public:
     void storeJointStates(sensor_msgs::JointState);
     void updateEndEffectorState(baxter_core_msgs::EndEffectorState);
         
+    double getArmPos(double);
+    
     bool isComplete(operation_plushie::isComplete::Request&, operation_plushie::isComplete::Response&);
 
     void selectState();
@@ -47,6 +49,5 @@ public:
     void release();
     void returning();
         
-    static double getArmPos(double);
 
 };

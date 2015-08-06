@@ -303,9 +303,7 @@ FaceDetector::chooseStage(const sensor_msgs::ImageConstPtr& msg)
 void 
 FaceDetector::pickup()
 {
-    //TODO: fix this assumption (always left) 
     operation_plushie::Pickup srv;
-    srv.request.isLeft = true;
     srv.request.isFirst = isFirst;
     isFirst = false;
 
@@ -322,6 +320,8 @@ FaceDetector::pickup()
         else
             xdisplay_pub.publish(happy_face);
     } while(!pickup_progress.response.isComplete);
+
+    isLeft = pickup_progress.response.isLeft;
     
     state = DELIVER;
 }
@@ -332,7 +332,8 @@ FaceDetector::deliver()
 {
     operation_plushie::Deliver srv;
     srv.request.headPos = head_state.pan;
-    
+    srv.request.isLeft = isLeft;   
+ 
     delivery_client.call(srv);
 
     operation_plushie::isComplete delivery_progress;
