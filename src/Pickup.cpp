@@ -177,7 +177,10 @@ Pickup::moveAboveBowl()
     do { 
 
         if(cant_reach)
+        {
             xdisplay_pub.publish(sad_face);
+            isLeft= !isLeft;
+        }
 
         if(!bowl_client.call(srv_ping))
         {
@@ -226,27 +229,48 @@ Pickup::moveAboveBowl()
 }
 
 /* Moves arm into a specific pose with the position_joints service to move it out of the point cloud */
-//TODO: make this functional for both arms
+//TODO: Check the right arm positions to see if they work.
 void 
 Pickup::moveOutOfDepthCloud()
 {
     operation_plushie::PositionJoints srv;
 
-    srv.request.names.push_back("left_e0"); 
-    srv.request.names.push_back("left_e1");
-    srv.request.names.push_back("left_s0");
-    srv.request.names.push_back("left_s1");
-    srv.request.names.push_back("left_w0");
-    srv.request.names.push_back("left_w1");
-    srv.request.names.push_back("left_w2");
+    if(isLeft)
+    {
+        srv.request.names.push_back("left_e0"); 
+        srv.request.names.push_back("left_e1");
+        srv.request.names.push_back("left_s0");
+        srv.request.names.push_back("left_s1");
+        srv.request.names.push_back("left_w0");
+        srv.request.names.push_back("left_w1");
+        srv.request.names.push_back("left_w2");
 
-    srv.request.command.push_back(0.141);
-    srv.request.command.push_back(1.998);
-    srv.request.command.push_back(0.361);
-    srv.request.command.push_back(-1.366);
-    srv.request.command.push_back(0);
-    srv.request.command.push_back(0.938);
-    srv.request.command.push_back(1.308);
+        srv.request.command.push_back(0.141);
+        srv.request.command.push_back(1.998);
+        srv.request.command.push_back(0.361);
+        srv.request.command.push_back(-1.366);
+        srv.request.command.push_back(0);
+        srv.request.command.push_back(0.938);
+        srv.request.command.push_back(1.308);
+    }
+    else
+    {
+        srv.request.names.push_back("right_e0");
+        srv.request.names.push_back("right_e1");
+        srv.request.names.push_back("right_s0");
+        srv.request.names.push_back("right_s1");
+        srv.request.names.push_back("right_w0");
+        srv.request.names.push_back("right_w1");
+        srv.request.names.push_back("right_w2");
+
+        srv.request.command.push_back(0.141);
+        srv.request.command.push_back(1.998);
+        srv.request.command.push_back(-0.361);
+        srv.request.command.push_back(-1.366);
+        srv.request.command.push_back(0);
+        srv.request.command.push_back(0.938);
+        srv.request.command.push_back(1.308);
+    }
 
     if (!position_joints_client.call(srv))
     {
