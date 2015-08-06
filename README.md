@@ -67,6 +67,8 @@ Here's a list of the most common errors and their solutions:
 Future Work
 =====
 In the res folder, there should be a file called "haarcascade_plushie.xml". This is not being used at the moment. It is a trained classifier that allows the computer to (somewhat) detect the plush toys. The goal was to try and use this to replace the color tracking, however,it has not been implemented.
+
+We are also currently trying to get this to work with both arms so that, when one arm cannot reach the bowl, the other one will be used instead. However, in order to get ambidexterity to work, you ~~must~~ find a way to dynamically open and close Baxter's cameras (i.e. during the run time), since only two of its cameras can be open at a time!
   
 Authors
 =====
