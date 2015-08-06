@@ -1,3 +1,5 @@
+/* Launched from operation_plushie.launch. Starts the PositionJoints service. */
+
 #include "PositionJoints.cpp"
 
 int 
