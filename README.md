@@ -11,8 +11,6 @@ Important!
 =====
 The following instructions are meant to be used on the robot-lab5 and leviathan computers, with the Xtion Pro plugged into the leviathan. This is also assuming that all of the packages are still on those computers. If this is not the case, see below for more details.
 
-This program is also currently set up to use Baxter's left arm. Although some hardcoded values can be adjusted to use its right arm, it would be better to set it up so that Baxter is ambidexterous when performing this task. 
-
 Directions
 =====
 1. Move to the root of the workspace containing the operation_plushie package (Run ```cd ~/indigo/Baxter_ws``` if you're using robot-lab5) and type ```. ./src/operation_plushie/scripts/baxter_setup.sh``` in the terminal to start the cameras.
@@ -67,8 +65,6 @@ Here's a list of the most common errors and their solutions:
 Future Work
 =====
 In the res folder, there should be a file called "haarcascade_plushie.xml". This is not being used at the moment. It is a trained classifier that allows the computer to (somewhat) detect the plush toys. The goal was to try and use this to replace the color tracking, however,it has not been implemented.
-
-We are also currently trying to get this to work with both arms so that, when one arm cannot reach the bowl, the other one will be used instead. However, in order to get ambidexterity to work, you ~~must~~ find a way to dynamically open and close Baxter's cameras (i.e. during the run time), since only two of its cameras can be open at a time!
   
 Authors
 =====
