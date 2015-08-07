@@ -134,11 +134,11 @@ Delivery::deliver(operation_plushie::Deliver::Request &req, operation_plushie::D
 
     //Fill up the command vector for stretchPose.
     //These commands move the arm into a outstretched position
-    stretchPose.command.push_back(-1.5);
+    stretchPose.command.push_back( (isLeft ? -1.5 : 1.5) );
     stretchPose.command.push_back(0.2);
     stretchPose.command.push_back(getArmPos(req.headPos));
     stretchPose.command.push_back(0);
-    stretchPose.command.push_back(1.5);
+    stretchPose.command.push_back( (isLeft ? 1.5 : -1.5) );
     stretchPose.command.push_back(0.3);
     stretchPose.command.push_back(0);
 

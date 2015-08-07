@@ -303,13 +303,13 @@ Pickup::moveOutOfDepthCloud()
         srv.request.names.push_back("right_w1");
         srv.request.names.push_back("right_w2");
 
-        srv.request.command.push_back(0.141);
+        srv.request.command.push_back(-0.141);
         srv.request.command.push_back(1.998);
         srv.request.command.push_back(-0.361);
         srv.request.command.push_back(-1.366);
         srv.request.command.push_back(0);
         srv.request.command.push_back(0.938);
-        srv.request.command.push_back(1.308);
+        srv.request.command.push_back(-1.308);
     }
 
     if (!position_joints_client.call(srv))
