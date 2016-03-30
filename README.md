@@ -68,9 +68,9 @@ In the res folder, there should be a file called "haarcascade_plushie.xml". This
   
 Authors
 =====
-Christopher Gibbs
+Christopher Munroe 
 
-Christopher Munroe
+Christopher Gibbs 
 
 Last Updated
 =====
